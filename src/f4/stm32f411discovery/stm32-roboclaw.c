@@ -29,6 +29,20 @@
 #include <stdbool.h>
 #include <libopencm3/stm32/usart.h>
 
+//Calculates CRC16 of nBytes of data in byte array message
+unsigned int crc16(unsigned char *packet, int nBytes) {
+  for (int byte = 0; byte < nBytes; byte++) {
+    crc = crc ^ ((unsigned int)packet[byte] << 8);
+    for (unsigned char bit = 0; bit < 8; bit++) {
+      if (crc & 0x8000) {
+	crc = (crc << 1) ^ 0x1021;
+      } else {
+	crc = crc << 1;
+      }
+    }
+  }
+  return crc;
+}
 
 void leds_init(void) {
 	rcc_periph_clock_enable(RCC_GPIOE);
@@ -89,7 +103,9 @@ int main(void)
     	  c=getc(stdin);
     	  i++;
     	  putc(c, stdout);
+	  // ask for firmware version -> 21 in CRC16 
           usart_send_blocking(USART2, 'a');
+	  // response 48 bytes 
     	}
       }
     }
