@@ -18,3 +18,4 @@
 
 void system_init(void);
 void leds_init(void);
+void usart_init(void);

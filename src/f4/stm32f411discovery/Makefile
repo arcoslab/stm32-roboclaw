@@ -19,6 +19,8 @@
 
 BINARY = stm32-roboclaw
 
+OBJS = serial_roboclaw.o
+
 OOCD_INTERFACE = stlink-v2
 
 LDSCRIPT = ../../../libopencm3-plus/lib/libopencm3_plus_stm32f411discovery.ld

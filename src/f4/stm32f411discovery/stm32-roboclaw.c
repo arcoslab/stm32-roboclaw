@@ -28,45 +28,30 @@
 #include <limits.h>
 #include <stdbool.h>
 #include <libopencm3/stm32/usart.h>
-
-//Calculates CRC16 of nBytes of data in byte array message
-unsigned int crc16(unsigned char *packet, int nBytes) {
-  unsigned int crc;
-  for (int byte = 0; byte < nBytes; byte++) {
-    crc = crc ^ ((unsigned int)packet[byte] << 8);
-    for (unsigned char bit = 0; bit < 8; bit++) {
-      if (crc & 0x8000) {
-	crc = (crc << 1) ^ 0x1021;
-      } else {
-	crc = crc << 1;
-      }
-    }
-  }
-  return crc;
-}
+#include "serial_roboclaw.h"
 
 void leds_init(void) {
-	rcc_periph_clock_enable(RCC_GPIOE);
-	gpio_mode_setup(GPIOD, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO12| GPIO13| GPIO14| GPIO15);
+  rcc_periph_clock_enable(RCC_GPIOE);
+  gpio_mode_setup(GPIOD, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO12| GPIO13| GPIO14| GPIO15);
 }
 
 void usart_init(void) {
-	rcc_periph_clock_enable(RCC_GPIOA);
-	gpio_mode_setup(GPIOA, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO2| GPIO3);
-        gpio_set_af(GPIOA, GPIO_AF7, GPIO2 | GPIO3);
-
-	rcc_periph_clock_enable(RCC_USART2);
-
-	/* Setup USART2 parameters. */
-	usart_set_baudrate(USART2, 115200);
-	usart_set_databits(USART2, 8);
-	usart_set_stopbits(USART2, USART_STOPBITS_1);
-	usart_set_mode(USART2, USART_MODE_TX_RX);
-	usart_set_parity(USART2, USART_PARITY_NONE);
-	usart_set_flow_control(USART2, USART_FLOWCONTROL_NONE);
-
-	/* Finally enable the USART. */
-	usart_enable(USART2);
+  rcc_periph_clock_enable(RCC_GPIOA);
+  gpio_mode_setup(GPIOA, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO2| GPIO3);
+  gpio_set_af(GPIOA, GPIO_AF7, GPIO2 | GPIO3);
+  
+  rcc_periph_clock_enable(RCC_USART2);
+  
+  /* Setup USART2 parameters. */
+  usart_set_baudrate(USART2, 115200);
+  usart_set_databits(USART2, 8);
+  usart_set_stopbits(USART2, USART_STOPBITS_1);
+  usart_set_mode(USART2, USART_MODE_TX_RX);
+  usart_set_parity(USART2, USART_PARITY_NONE);
+  usart_set_flow_control(USART2, USART_FLOWCONTROL_NONE);
+  
+  /* Finally enable the USART. */
+  usart_enable(USART2);
 }
 
 void system_init(void) {
@@ -89,7 +74,7 @@ int main(void)
 
   setvbuf(stdin,NULL,_IONBF,0); // Sets stdin in unbuffered mode (normal for usart com)
   setvbuf(stdout,NULL,_IONBF,0); // Sets stdin in unbuffered mode (normal for usart com)
-
+  
   while (poll(stdin) > 0) {
     printf("Cleaning stdin\n");
     getc(stdin);
@@ -99,19 +84,14 @@ int main(void)
     printf("Test\n");
     if ((poll(stdin) > 0)) {
       i=0;
-      if (poll(stdin) > 0) {
-    	c=0;
-    	while (c!='\r') {
-    	  c=getc(stdin);
-    	  i++;
-    	  putc(c, stdout);
-	  // ask for firmware version -> 21 in CRC16 
-          usart_send_blocking(USART2, 'a');
-	  // response 48 bytes
-	  a=usart_recv_blocking(USART2);
-	  putc(a, stdout);
-	  
-	}
+      c=0;
+      while (c!='\r') {
+	c=getc(stdin);
+	i++;
+	putc(c, stdout);
+	usart_send_blocking(USART2, 'a');
+	a=usart_recv_blocking(USART2);
+	putc(a, stdout);
       }
     }
   }
