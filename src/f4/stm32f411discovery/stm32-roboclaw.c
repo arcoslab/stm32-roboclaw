@@ -84,6 +84,7 @@ int main(void)
   char confirm[10]="";
   int i, j;
   int c=0;
+  int a=0;
   int n_char=0;
 
   setvbuf(stdin,NULL,_IONBF,0); // Sets stdin in unbuffered mode (normal for usart com)
@@ -106,8 +107,11 @@ int main(void)
     	  putc(c, stdout);
 	  // ask for firmware version -> 21 in CRC16 
           usart_send_blocking(USART2, 'a');
-	  // response 48 bytes 
-    	}
+	  // response 48 bytes
+	  a=usart_recv_blocking(USART2);
+	  putc(a, stdout);
+	  
+	}
       }
     }
   }
