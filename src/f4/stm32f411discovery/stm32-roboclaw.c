@@ -31,6 +31,7 @@
 
 //Calculates CRC16 of nBytes of data in byte array message
 unsigned int crc16(unsigned char *packet, int nBytes) {
+  unsigned int crc;
   for (int byte = 0; byte < nBytes; byte++) {
     crc = crc ^ ((unsigned int)packet[byte] << 8);
     for (unsigned char bit = 0; bit < 8; bit++) {
