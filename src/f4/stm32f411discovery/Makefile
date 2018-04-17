@@ -19,7 +19,7 @@
 
 BINARY = stm32-roboclaw
 
-OBJS = serial_roboclaw.o
+OBJS = roboclaw.o
 
 OOCD_INTERFACE = stlink-v2
 

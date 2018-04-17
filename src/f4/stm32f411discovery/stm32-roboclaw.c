@@ -28,7 +28,7 @@
 #include <limits.h>
 #include <stdbool.h>
 #include <libopencm3/stm32/usart.h>
-#include "serial_roboclaw.h"
+#include "roboclaw.h"
 
 void leds_init(void) {
   rcc_periph_clock_enable(RCC_GPIOE);
@@ -89,9 +89,11 @@ int main(void)
 	c=getc(stdin);
 	i++;
 	putc(c, stdout);
-	usart_send_blocking(USART2, 'a');
-	a=usart_recv_blocking(USART2);
-	putc(a, stdout);
+	char *output;
+	read_firmware(output, 128);
+	//usart_send_blocking(USART2, 'a');
+	//a=usart_recv_blocking(USART2);
+	//putc(a, stdout);
       }
     }
   }
