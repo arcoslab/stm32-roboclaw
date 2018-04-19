@@ -30,6 +30,8 @@
 #include <libopencm3/stm32/usart.h>
 #include "roboclaw.h"
 
+#define ADDRESS 128
+
 void leds_init(void) {
   rcc_periph_clock_enable(RCC_GPIOE);
   gpio_mode_setup(GPIOD, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO12| GPIO13| GPIO14| GPIO15);
@@ -90,11 +92,10 @@ int main(void)
 	i++;
 	putc(c, stdout);
 	char *output;
-	read_firmware(output, 128);
-	//usart_send_blocking(USART2, 'a');
-	//a=usart_recv_blocking(USART2);
-	//putc(a, stdout);
+	//read_firmware(output, 128);
+	read_main_battery(output, ADDRESS);
       }
     }
   }
+  
 }

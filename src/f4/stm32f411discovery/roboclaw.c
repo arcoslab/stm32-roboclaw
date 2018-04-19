@@ -21,19 +21,35 @@ int read_firmware(char* output, uint8_t address) {
   unsigned int a = 0;
     
   usart_send_blocking(USART2, address);
-  a = usart_recv_blocking(USART2);
-  fprintf(stdout, "%u", a);
-
   usart_send_blocking(USART2, 21);
-  a = usart_recv_blocking(USART2);
-  //fprintf(stdout, "%u", a);
 
   unsigned char *packet = output + address;
-  usart_send_blocking(USART2, crc16(packet, 2));
-  a = usart_recv_blocking(USART2);
-  //a = usart_recv_blocking(USART2);
-  //fprintf(stdout, "%u", a);
+  fprintf(stdout, "B: ");
+  for(int i=0; i<29; i++) {
+    a = usart_recv_blocking(USART2);
+    fprintf(stdout, "%u ", a);
 
+  }
 }
+
+int read_main_battery(char* output, uint8_t address) {
+  unsigned int rcv = 0;
+
+  usart_send_blocking(USART2, address);
+  usart_send_blocking(USART2, 24);
+
+  unsigned char *packet = address + 24;
+  short checksum = crc16(packet, 2);
+  char high_byte = checksum >> 8;
+  char low_byte = checksum;
+  fprintf(stdout, "%u %u", high_byte, low_byte);
+  
+  for(int i=0; i<4; i++) {
+    rcv = usart_recv_blocking(USART2);
+    fprintf(stdout, " %u" , rcv);
+  }
+}
+
+
 
 
