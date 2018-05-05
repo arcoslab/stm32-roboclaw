@@ -64,11 +64,11 @@ int read_main_battery(char* output, uint8_t address) {
   } // first two bytes are the battery voltage
 
   unsigned char crc_rcv[2]; // received crc value from roboclaw
-  data[1] = usart_recv_blocking(USART2);
-  data[0] = usart_recv_blocking(USART2);
+  crc_rcv[1] = usart_recv_blocking(USART2);
+  crc_rcv[0] = usart_recv_blocking(USART2);
 
-  fprintf(stdout, " %u", data[1]);
-  fprintf(stdout, " %u". data[0]);
+  fprintf(stdout, " %u", crc_rcv[1]);
+  fprintf(stdout, " %u". crc_rcv[0]);
 }
 
 
