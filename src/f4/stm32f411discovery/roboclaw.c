@@ -19,10 +19,15 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 #include <libopencm3/stm32/usart.h>
 
-unsigned int crc16(unsigned char *packet, int nBytes) {
-  unsigned int crc=0;
+#define GET_FIRMWARE 21
+#define GET_MAIN_BATT 24
+
+uint16_t crc16(unsigned char *packet, int nBytes) {
+  uint16_t crc=0;
   for (int byte = 0; byte < nBytes; byte++) {
     crc = crc ^ ((unsigned int)packet[byte] << 8);
     for (unsigned char bit = 0; bit < 8; bit++) {
@@ -36,39 +41,77 @@ unsigned int crc16(unsigned char *packet, int nBytes) {
   return crc;
 }
 
-int read_firmware(char* output, uint8_t address) {
-  unsigned int a = 0;
+int read_firmware(char *output, uint8_t address) {
+  /* Returns true if operation was succesful, 
+     False otherwise. Also if outcome is true
+     the firmware version will be printed
+     in the output 
+  */
+
+  unsigned char data[50]; //two bytes for address and cmd, and up to 48 to response
+  data[0] = address;
+  data[1] = (unsigned char) GET_FIRMWARE;
     
-  usart_send_blocking(USART2, address);
-  usart_send_blocking(USART2, 21);
+  //unsigned int a = 0;
+  usart_send_blocking(USART2, data[0]);
+  usart_send_blocking(USART2, data[1]);
 
-  unsigned char *packet = output + address;
-  fprintf(stdout, "B: ");
-  for(int i=0; i<29; i++) {
-    a = usart_recv_blocking(USART2);
-    fprintf(stdout, "%u ", a);
+  for(int i=2; i<51; i++) {// max response size is 48 bytes
+    data[i] = usart_recv_blocking(USART2);
+    if (((uint8_t)(data[i-1]) == 10) & (uint8_t)(data[i]) == 0) {//if this is 10, 0
+      break;
+    }
+  }// write all response to data[i]
+  
+  unsigned char crc_rcv[2]; // receive the crc
+  crc_rcv[0] = usart_recv_blocking(USART2);
+  crc_rcv[1] = usart_recv_blocking(USART2);
 
+  int response_size = strlen(&data)+1;//size of the dat rcvd + \n
+  uint16_t crc_chk = crc16(data, response_size); // calculate local checksum
+
+  if (crc_chk == (uint16_t)(crc_rcv[0] << 8 | crc_rcv[1])) { //check local crc with roboclaw
+    strcpy(output, &data[2]);
+    return true;
+  }//if
+  else {
+    return false;
   }
+  
 }
 
-int read_main_battery(char* output, uint8_t address) {
-  unsigned int rcv = 0;
+bool read_main_battery(float *voltage, uint8_t address) {
+  /* Returns true if operation was succesful,
+     False otherwise """.
+     If the outcome is true, the battery
+     level will be stored in output.
+  */
 
-  char cmd = 24; // CMD value for read main battery
-  usart_send_blocking(USART2, address);
-  usart_send_blocking(USART2, cmd);
+  unsigned char data[4]; // two bytes for address and cmd, two for value
+  
+  data[0] = address; //first to write is address
+  data[1] = (unsigned char) GET_MAIN_BATT; // second is cmd 
+  
+  usart_send_blocking(USART2, data[0]); // send first address and cmd
+  usart_send_blocking(USART2, data[1]);
 
-  for(int i=0; i<2; i++) {
-    rcv = usart_recv_blocking(USART2);
-    fprintf(stdout, " %u" , rcv);
-  } // first two bytes are the battery voltage
+  for(int i=2; i<4; i++) {
+    data[i] = usart_recv_blocking(USART2);
+  } // first two bytes rcvd are the battery voltage
 
-  unsigned char crc_rcv[2]; // received crc value from roboclaw
-  crc_rcv[1] = usart_recv_blocking(USART2);
+  unsigned char crc_rcv[2]; // received crc values from roboclaw
   crc_rcv[0] = usart_recv_blocking(USART2);
+  crc_rcv[1] = usart_recv_blocking(USART2);
 
-  fprintf(stdout, " %u", crc_rcv[1]);
-  fprintf(stdout, " %u". crc_rcv[0]);
+  uint16_t crc_chk = crc16(data, 4); // calculate local checksum
+
+  if (crc_chk == (uint16_t)(crc_rcv[0] << 8 | crc_rcv[1])) { //check local crc with roboclaw crc
+    *voltage = (float) ((uint16_t)(data[2] << 8 | data[3])) / 10.0;
+    return true;
+  }//if
+  else {
+    return false;
+  }
 }
 
 

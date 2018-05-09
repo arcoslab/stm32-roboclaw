@@ -66,13 +66,8 @@ void system_init(void) {
 int main(void)
 {
   system_init();
-  char cmd_s[50]="";
-  char cmd[10]="";
-  char confirm[10]="";
-  int i, j;
+  int i;
   int c=0;
-  int a=0;
-  int n_char=0;
 
   setvbuf(stdin,NULL,_IONBF,0); // Sets stdin in unbuffered mode (normal for usart com)
   setvbuf(stdout,NULL,_IONBF,0); // Sets stdin in unbuffered mode (normal for usart com)
@@ -91,9 +86,20 @@ int main(void)
 	c=getc(stdin);
 	i++;
 	putc(c, stdout);
-	char *output;
-	//read_firmware(output, 128);
-	read_main_battery(output, ADDRESS);
+        // read firmware test
+        char output;
+	bool success = read_firmware(&output, ADDRESS);
+        if (success) {
+          fprintf(stdout, "%s", &output);
+        }// if success
+        // read battery test
+        float voltage;
+        success = false;
+	success = read_main_battery(&voltage, ADDRESS);
+        if (success) {
+          fprintf(stdout, " %f", voltage);
+        }
+        
       }
     }
   }
