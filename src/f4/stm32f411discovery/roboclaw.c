@@ -23,6 +23,10 @@
 #include <stdlib.h>
 #include <libopencm3/stm32/usart.h>
 
+#define DRIVE_FWD_1 0
+#define DRIVE_BWD_1 1
+#define DRIVE_FWD_2 4
+#define DRIVE_BWD_2 5
 #define GET_FIRMWARE 21
 #define GET_MAIN_BATT 24
 
@@ -41,7 +45,67 @@ uint16_t crc16(unsigned char *packet, int nBytes) {
   return crc;
 }
 
-int read_firmware(char *output, uint8_t address) {
+bool move_motor(bool motor, uint8_t address, uint8_t value, bool direction) {
+  /* Returns true if the motors moves succesfully, or
+     false if didn't receive 0xff. motor is 0 for motor 1
+     and 1 for motor 2. 127 is for full speed, 64 is about half
+     speed, and 0 is full stop. If direction is 0 then it will move
+     backwards, if direction is 1 it will move forward. 
+  */
+
+  unsigned char data[6]; // address, cmd, value, 2byte crc
+
+  data[0] = address; //first to write is address
+  usart_send_blocking(USART2, data[0]); //send address
+  
+  if ((motor == 0) & (direction == 1)) {
+    // move motor 1 forward
+    data[1] = (unsigned char) DRIVE_FWD_1;
+  }
+  if ((motor == 0) & (direction == 0)) {
+    // move motor 1 backward
+    data[1] = (unsigned char) DRIVE_BWD_1;
+  }
+  if ((motor == 1) & (direction == 1)) {
+    // move motor 2 forward
+    data[1] = (unsigned char) DRIVE_FWD_2;
+  }
+  if ((motor == 1) & (direction == 0)) {
+    // move motor 2 backwards
+    data[1] = (unsigned char) DRIVE_BWD_2;
+  }
+
+  usart_send_blocking(USART2, data[1]); //send cmd
+  
+  if(value > 127){
+    // invalid input value
+    return false;
+  }
+
+  data[2] = (unsigned char) value;
+
+  usart_send_blocking(USART2, data[2]); //send value
+
+  uint16_t crc_chk = crc16(data, 3);
+  data[3] = crc_chk >> 8; // high value byte
+  data[4] = crc_chk; // low value byte
+
+  usart_send_blocking(USART2, data[3]); //send high byte crc
+  usart_send_blocking(USART2, data[4]); //send low byte crc
+
+  data[5] = usart_recv_blocking(USART2);
+  fprintf(stdout, " %u", data[5]);
+
+  if(data[5] == ((char)255)){
+    return true; //ack code sent
+  }
+  else {
+    return false;
+  }
+  
+}
+
+bool read_firmware(char *output, uint8_t address) {
   /* Returns true if operation was succesful, 
      False otherwise. Also if outcome is true
      the firmware version will be printed
@@ -58,7 +122,7 @@ int read_firmware(char *output, uint8_t address) {
 
   for(int i=2; i<51; i++) {// max response size is 48 bytes
     data[i] = usart_recv_blocking(USART2);
-    if (((uint8_t)(data[i-1]) == 10) & (uint8_t)(data[i]) == 0) {//if this is 10, 0
+if (((uint8_t)(data[i-1]) == 10) & ((uint8_t)(data[i]) == 0)) {//if this is 10, 0
       break;
     }
   }// write all response to data[i]
