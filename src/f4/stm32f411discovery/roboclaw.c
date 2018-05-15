@@ -17,18 +17,13 @@
  */
 
 
+#include "roboclaw.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <libopencm3/stm32/usart.h>
 
-#define DRIVE_FWD_1 0
-#define DRIVE_BWD_1 1
-#define DRIVE_FWD_2 4
-#define DRIVE_BWD_2 5
-#define GET_FIRMWARE 21
-#define GET_MAIN_BATT 24
 
 uint16_t crc16(unsigned char *packet, int nBytes) {
   uint16_t crc=0;
