@@ -94,8 +94,7 @@ bool move_motor(bool motor, uint8_t address, uint8_t value, bool direction) {
   usart_send_blocking(USART2, data[4]); //send low byte crc
 
   data[5] = usart_recv_blocking(USART2);
-  fprintf(stdout, " %u", data[5]);
-
+  
   if(data[5] == ((char)255)){
     return true; //ack code sent
   }
