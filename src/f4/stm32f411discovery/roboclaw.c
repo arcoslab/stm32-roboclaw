@@ -18,11 +18,10 @@
 
 
 #include "roboclaw.h"
-#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <stdlib.h>
 #include <libopencm3/stm32/usart.h>
+#include <stdlib.h>
 
 
 uint16_t crc16(unsigned char *packet, int nBytes) {

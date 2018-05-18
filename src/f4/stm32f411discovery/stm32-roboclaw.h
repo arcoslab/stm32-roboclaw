@@ -16,6 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define ADDRESS 128
+#define BAUDRATE 115200
+#define PERIOD 65535
+#define TICKS 30
+#define SYS_TICK_AUTORELOAD 8399 
+#define TICKS_T 0.0001
+#define TICKS_PER_REV 3408
+#define COUNTER_RELOAD 10000
+
 void system_init(void);
 void leds_init(void);
 void usart_init(void);
+void tim_init(void);
+void systick_init(void);

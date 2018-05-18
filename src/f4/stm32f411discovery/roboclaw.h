@@ -1,6 +1,9 @@
 #ifndef SERIAL_ROBOCLAW_H
 #define SERIAL_ROBOCLAW_H
 
+#include <stdint.h>
+#include <stdbool.h>
+
 #define DRIVE_FWD_1 0
 #define DRIVE_BWD_1 1
 #define DRIVE_FWD_2 4
