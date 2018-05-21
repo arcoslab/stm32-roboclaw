@@ -39,14 +39,12 @@
 
 volatile uint64_t counter=0;
 volatile unsigned int ticks;
-volatile int64_t pos_o;
-volatile int64_t pos_f;
-volatile float vel_o;
-volatile float vel_f;
-volatile float accel_o;
-volatile float accel_f;
+volatile int64_t past_pos;
+volatile int64_t current_pos;
+volatile float past_vel;
+volatile float current_vel;
+volatile float current_accel;
 volatile unsigned int uif;
-volatile float systick_time=TICKS_TIME;
 
 void leds_init(void) {
   rcc_periph_clock_enable(RCC_GPIOE);
@@ -59,10 +57,10 @@ void encoder_init(void) {
    the init
   */
   counter = 0;
-  pos_o = 0;
-  pos_f = 0;
-  vel_o = 0.0;
-  vel_f = 0.0;
+  current_pos = 0;
+  past_pos = 0;
+  past_vel = 0.0;
+  current_vel = 0.0;
   accel_o = 0.0;
   accel_f = 0.0;
   uif = 0;
@@ -85,27 +83,21 @@ void sys_tick_handler(void) {
    */
   
   counter++; // this is counting how many systick handlers are called
-  uif = timer_get_flag(TIM3, TIM_SR_UIF); // get the update flag from the counter
+  current_pos = timer_get_counter(TIM3);
 
-  //pos_f = timer_get_counter(TIM3);
-  if(uif==1){
-    // the difference is unknown
-    counter=0;
-    pos_o = timer_get_counter(TIM3);
-    pos_f = pos_o; // reset pos final
-    timer_clear_flag(TIM3, TIM_SR_UIF); // clear the flag
+  if (past_pos == current_pos) {
+    return;
   }
-  else{
-    // theres no call to autoreload
-    pos_f = timer_get_counter(TIM3);
-    if(abs(pos_f - pos_o) >= TICKS) { //ticks is defined in the header
-      //amount of ticks found
-      pos_o = pos_f;
-      vel_f = 1.0 / (systick_time * (float)counter * (float) TICKS_PER_REV ); // in ticks / second
-      vel_o = vel_f;
-      counter = 0; // reset counter
-    }
-  }
+
+  current_vel = (float) (past_pos - current_pos) / (float) counter * TICKS_TIME;
+
+  past_vel = current_vel;
+  past_pos = current_pos;
+  counter = 0;
+
+    
+  //uif = timer_get_flag(TIM3, TIM_SR_UIF); // get the update flag from the counter
+  
 }
 
 void system_init(void) {
@@ -147,7 +139,7 @@ int main(void)
 
     motor_pos = timer_get_counter(TIM3);
     flag = timer_get_flag(TIM3, TIM_SR_UIF); // get the udpate interrupt flag
-    fprintf(stdout, "Pos: %d | Vel: %f | Accel: %f | Counter: %u \n", pos_f, vel_f, accel_f, counter);
+    fprintf(stdout, "Pos: %d | Vel: %f | Accel: %f | Counter: %u \n", current_pos, current_vel, accel_f, counter);
     //fprintf(stdout, "Motor: %d  || UIF: %d \n", motor_pos, flag);
     //fprintf(stdout, "Test | counter value: %d \n", counter);
     //printf("Test\n");
