@@ -17,12 +17,6 @@
  */
 
 #define ADDRESS 128
-#define BAUDRATE 115200
-#define PERIOD 65535
-#define TICKS 30
-#define SYS_TICK_AUTORELOAD 8399 
-#define TICKS_T 0.0001
-#define TICKS_PER_REV 3408
 #define COUNTER_RELOAD 10000
 
 void system_init(void);

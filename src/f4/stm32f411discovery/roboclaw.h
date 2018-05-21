@@ -1,8 +1,13 @@
-#ifndef SERIAL_ROBOCLAW_H
-#define SERIAL_ROBOCLAW_H
+#ifndef ROBOCLAW_H
+#define ROBOCLAW_H
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <libopencm3/stm32/usart.h>
+#include "usart.h"
 
 #define DRIVE_FWD_1 0
 #define DRIVE_BWD_1 1

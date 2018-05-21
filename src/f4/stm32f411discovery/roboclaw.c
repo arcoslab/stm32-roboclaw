@@ -18,11 +18,6 @@
 
 
 #include "roboclaw.h"
-#include <stdio.h>
-#include <string.h>
-#include <libopencm3/stm32/usart.h>
-#include <stdlib.h>
-
 
 uint16_t crc16(unsigned char *packet, int nBytes) {
   uint16_t crc=0;
@@ -50,7 +45,7 @@ bool move_motor(bool motor, uint8_t address, uint8_t value, bool direction) {
   unsigned char data[6]; // address, cmd, value, 2byte crc
 
   data[0] = address; //first to write is address
-  usart_send_blocking(USART2, data[0]); //send address
+  usart_send_blocking(USART_x, data[0]); //send address
   
   if ((motor == 0) & (direction == 1)) {
     // move motor 1 forward
@@ -69,7 +64,7 @@ bool move_motor(bool motor, uint8_t address, uint8_t value, bool direction) {
     data[1] = (unsigned char) DRIVE_BWD_2;
   }
 
-  usart_send_blocking(USART2, data[1]); //send cmd
+  usart_send_blocking(USART_x, data[1]); //send cmd
   
   if(value > 127){
     // invalid input value
@@ -78,16 +73,16 @@ bool move_motor(bool motor, uint8_t address, uint8_t value, bool direction) {
 
   data[2] = (unsigned char) value;
 
-  usart_send_blocking(USART2, data[2]); //send value
+  usart_send_blocking(USART_x, data[2]); //send value
 
   uint16_t crc_chk = crc16(data, 3);
   data[3] = crc_chk >> 8; // high value byte
   data[4] = crc_chk; // low value byte
 
-  usart_send_blocking(USART2, data[3]); //send high byte crc
-  usart_send_blocking(USART2, data[4]); //send low byte crc
+  usart_send_blocking(USART_x, data[3]); //send high byte crc
+  usart_send_blocking(USART_x, data[4]); //send low byte crc
 
-  data[5] = usart_recv_blocking(USART2);
+  data[5] = usart_recv_blocking(USART_x);
   
   if(data[5] == ((char)255)){
     return true; //ack code sent
@@ -110,19 +105,19 @@ bool read_firmware(char *output, uint8_t address) {
   data[1] = (unsigned char) GET_FIRMWARE;
     
   //unsigned int a = 0;
-  usart_send_blocking(USART2, data[0]);
-  usart_send_blocking(USART2, data[1]);
+  usart_send_blocking(USART_x, data[0]);
+  usart_send_blocking(USART_x, data[1]);
 
   for(int i=2; i<51; i++) {// max response size is 48 bytes
-    data[i] = usart_recv_blocking(USART2);
+    data[i] = usart_recv_blocking(USART_x);
 if (((uint8_t)(data[i-1]) == 10) & ((uint8_t)(data[i]) == 0)) {//if this is 10, 0
       break;
     }
   }// write all response to data[i]
   
   unsigned char crc_rcv[2]; // receive the crc
-  crc_rcv[0] = usart_recv_blocking(USART2);
-  crc_rcv[1] = usart_recv_blocking(USART2);
+  crc_rcv[0] = usart_recv_blocking(USART_x);
+  crc_rcv[1] = usart_recv_blocking(USART_x);
 
   int response_size = strlen(&data)+1;//size of the dat rcvd + \n
   uint16_t crc_chk = crc16(data, response_size); // calculate local checksum
@@ -149,16 +144,16 @@ bool read_main_battery(float *voltage, uint8_t address) {
   data[0] = address; //first to write is address
   data[1] = (unsigned char) GET_MAIN_BATT; // second is cmd 
   
-  usart_send_blocking(USART2, data[0]); // send first address and cmd
-  usart_send_blocking(USART2, data[1]);
+  usart_send_blocking(USART_x, data[0]); // send first address and cmd
+  usart_send_blocking(USART_x, data[1]);
 
   for(int i=2; i<4; i++) {
-    data[i] = usart_recv_blocking(USART2);
+    data[i] = usart_recv_blocking(USART_x);
   } // first two bytes rcvd are the battery voltage
 
   unsigned char crc_rcv[2]; // received crc values from roboclaw
-  crc_rcv[0] = usart_recv_blocking(USART2);
-  crc_rcv[1] = usart_recv_blocking(USART2);
+  crc_rcv[0] = usart_recv_blocking(USART_x);
+  crc_rcv[1] = usart_recv_blocking(USART_x);
 
   uint16_t crc_chk = crc16(data, 4); // calculate local checksum
 

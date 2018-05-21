@@ -19,93 +19,38 @@
 
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
-#include <libopencm3/stm32/timer.h>
+#include <libopencm3/stm32/exti.h>
+#include <libopencm3/cm3/systick.h>
 #include <libopencm3-plus/newlib/syscall.h>
-#include "stm32-roboclaw.h"
 #include <libopencm3-plus/cdcacm_one_serial/cdcacm.h>
-#include <stdio.h>
 #include <libopencm3-plus/utils/misc.h>
 #include <libopencm3-plus/stm32f4discovery/leds.h>
+#include <stdio.h>
+#include <stdint.h>
 #include <limits.h>
 #include <math.h>
 #include <stdbool.h>
-#include <libopencm3/stm32/usart.h>
+#include "stm32-roboclaw.h"
 #include "roboclaw.h"
-#include <libopencm3/cm3/systick.h>
+#include "exti.h"
+#include "timers.h"
+#include "usart.h"
+#include "systick.h"
 
-volatile unsigned int counter;
-volatile unsigned int pos_o;
-volatile unsigned int pos_f;
+volatile uint64_t counter=0;
+volatile unsigned int ticks;
+volatile int64_t pos_o;
+volatile int64_t pos_f;
 volatile float vel_o;
 volatile float vel_f;
 volatile float accel_o;
 volatile float accel_f;
 volatile unsigned int uif;
-volatile float systick_time;
+volatile float systick_time=TICKS_TIME;
 
 void leds_init(void) {
   rcc_periph_clock_enable(RCC_GPIOE);
   gpio_mode_setup(GPIOD, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO12| GPIO13| GPIO14| GPIO15);
-}
-
-void usart_init(void) {
-  rcc_periph_clock_enable(RCC_GPIOA);
-  gpio_mode_setup(GPIOA, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO2| GPIO3);
-  gpio_set_af(GPIOA, GPIO_AF7, GPIO2 | GPIO3);
-  
-  rcc_periph_clock_enable(RCC_USART2);
-  
-  /* Setup USART2 parameters. */
-  usart_set_baudrate(USART2, BAUDRATE);
-  usart_set_databits(USART2, 8);
-  usart_set_stopbits(USART2, USART_STOPBITS_1);
-  usart_set_mode(USART2, USART_MODE_TX_RX);
-  usart_set_parity(USART2, USART_PARITY_NONE);
-  usart_set_flow_control(USART2, USART_FLOWCONTROL_NONE);
-  
-  /* Finally enable the USART. */
-  usart_enable(USART2);
-}
-
-void tim_init(void) {
-  /* Timer 5 is available to use in PA0 and PA1 for other encoder
-   * Timer 4 can be used mapping TIM4_CH3 in PB8 to TI1 and TIM4_CH2 in PB7 to TI2
-   * Timer 2 can be used with CH2 to TI2 in PA1 and CH1 to TI1 in PA15
-   * NOTE: CH1, CH2, and CH3 might be mapped to TI1
-   * TI2 can only be mapped with CH2 245 @ rm0383.pdf
-   *
-   */
-  
-  rcc_periph_clock_enable(RCC_GPIOB);
-  gpio_mode_setup(GPIOB, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO4 | GPIO5); // pin a6 & a7 to Alternate Function
-  gpio_set_af(GPIOB, GPIO_AF2, GPIO4 | GPIO5); // ref pag 47 @ ds10314 datasheet table 9 AF02 column
-  
-  rcc_periph_clock_enable(RCC_TIM3);
-  timer_set_period(TIM3, PERIOD); // set maximun period before auto reload
-  timer_slave_set_mode(TIM3, 0x3); // encoder 
-  timer_ic_set_input(TIM3, TIM_IC1, TIM_IC_IN_TI1); // map ch1 to TI1 -> ref pag 243 @ rm0383.pdf
-  timer_ic_set_input(TIM3, TIM_IC2, TIM_IC_IN_TI2); // map ch2 to TI2 '' '' ''
-  timer_enable_counter(TIM3);
-  
-}
-
-void systick_init(void) {
-  /* Proper configuration of systick is the following
-   * Set Reload Register STK_LOAD reg
-   * Clear current value STK_VAL reg
-   * Program control and status reg: STK_CTRL
-   * Control reg STK_CTRL contains countflag,
-   * Clksource, tick int and enable
-   * Reload value, should be N-1, because systick 
-   * lasts one clock cycle in logic
-   * EG you want subroutine to run each 100,000 cycles
-   * then you choose Reload value to 99,999
-   */
-  systick_set_reload(SYS_TICK_AUTORELOAD); // clock rate is 84Mhz. repeated each 100us
-  systick_time = TICKS_T; // or the same as 100us, 0.1ms
-  systick_set_clocksource(STK_CSR_CLKSOURCE_AHB); 
-  systick_counter_enable();
-  systick_interrupt_enable();
 }
 
 void encoder_init(void) {
@@ -123,13 +68,22 @@ void encoder_init(void) {
   uif = 0;
 }
 
+void exti0_isr(void) {
+  /* Called on each hardware interrupt. Read exti_init
+   * for more info
+   */
+  exti_reset_request(EXTI_x); // reset the interruption flag
+  ticks++;
+
+}
+
 void sys_tick_handler(void) {
   /* This function will be called when systick fires, every 100us. 
-     Note that the slowest rate of the motor reaches
-     5.53 ms per tick. If you count 30 ticks, the lag between new 
-     vel values will be 166 ms 
+   * Note that the slowest rate of the motor reaches
+   * 5.53 ms per tick. If you count 30 ticks, the lag between new 
+   * vel values will be 166 ms 
    */
-    
+  
   counter++; // this is counting how many systick handlers are called
   uif = timer_get_flag(TIM3, TIM_SR_UIF); // get the update flag from the counter
 
@@ -144,17 +98,13 @@ void sys_tick_handler(void) {
   else{
     // theres no call to autoreload
     pos_f = timer_get_counter(TIM3);
-    if(abs(pos_f - pos_o) == TICKS) { //ticks is defined in the header
+    if(abs(pos_f - pos_o) >= TICKS) { //ticks is defined in the header
       //amount of ticks found
       pos_o = pos_f;
-      vel_f = (float)TICKS / (systick_time * (float)counter * (float) TICKS_PER_REV ); // in ticks / second
+      vel_f = 1.0 / (systick_time * (float)counter * (float) TICKS_PER_REV ); // in ticks / second
       vel_o = vel_f;
       counter = 0; // reset counter
     }
-    if(counter > COUNTER_RELOAD) {
-      counter = 0;
-      vel_f = 0.0;
-    }//counter reload
   }
 }
 
@@ -164,6 +114,7 @@ void system_init(void) {
   leds_init();
   cdcacm_init();
   usart_init();
+  exti_init();
   tim_init();
   systick_init();
   encoder_init();
@@ -196,10 +147,11 @@ int main(void)
 
     motor_pos = timer_get_counter(TIM3);
     flag = timer_get_flag(TIM3, TIM_SR_UIF); // get the udpate interrupt flag
-    fprintf(stdout, "Pos: %d | Vel: %f | Accel: %f\n", pos_f, vel_f, accel_f);
+    fprintf(stdout, "Pos: %d | Vel: %f | Accel: %f | Counter: %u \n", pos_f, vel_f, accel_f, counter);
     //fprintf(stdout, "Motor: %d  || UIF: %d \n", motor_pos, flag);
+    //fprintf(stdout, "Test | counter value: %d \n", counter);
     //printf("Test\n");
-
+    
 
     if ((poll(stdin) > 0)) {
       i=0;
@@ -211,7 +163,8 @@ int main(void)
         //fprintf(stdout, " %u\n", c);
         // read firmware test
         char output;
-	bool success = read_firmware(&output, ADDRESS);
+        //bool success = false;
+        bool success = read_firmware(&output, ADDRESS);
         if (success) {
           fprintf(stdout, "%s", &output);
         }// if success
