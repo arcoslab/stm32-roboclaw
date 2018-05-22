@@ -82,7 +82,7 @@ void sys_tick_handler(void) {
    */
 
   counter++; // this is counting how many systick handlers are called
-  current_pos = (int64_t) timer_get_counter(TIM3);
+  current_pos = timer_get_counter(TIM3);
 
   if (past_pos == current_pos) {
     return;
@@ -100,7 +100,7 @@ void sys_tick_handler(void) {
 
 void system_init(void) {
   /* This setup is using a STM32F411-disco, other versions may vary */
-  rcc_clock_setup_hse_3v3(&rcc_hse_8mhz_3v3[RCC_CLOCK_3V3_84MHZ]);
+  rcc_clock_setup_hse_3v3(&rcc_hse_8mhz_3v3[RCC_CLOCK_3V3_120MHZ]);
   leds_init();
   cdcacm_init();
   usart_init();
