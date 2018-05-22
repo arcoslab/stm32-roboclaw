@@ -1,8 +1,8 @@
 /*
  * Copyright (C) 2018 ARCOS-Lab Universidad de Costa Rica
- * Author: Federico Ruiz Ugalde <memeruiz@gmail.com> 
+ * Author: Federico Ruiz Ugalde <memeruiz@gmail.com>
  * Author: Stuart Leal Quesada <stuart.leal23@gmail.com>
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -75,12 +75,12 @@ void exti0_isr(void) {
 }
 
 void sys_tick_handler(void) {
-  /* This function will be called when systick fires, every 100us. 
+  /* This function will be called when systick fires, every 100us.
    * Note that the slowest rate of the motor reaches
-   * 5.53 ms per tick. If you count 30 ticks, the lag between new 
-   * vel values will be 166 ms 
+   * 5.53 ms per tick. If you count 30 ticks, the lag between new
+   * vel values will be 166 ms
    */
-  
+
   counter++; // this is counting how many systick handlers are called
   current_pos = (int64_t) timer_get_counter(TIM3);
 
@@ -93,9 +93,9 @@ void sys_tick_handler(void) {
   past_vel = current_vel;
   past_pos = current_pos;
   counter = 0;
-    
+
   //uif = timer_get_flag(TIM3, TIM_SR_UIF); // get the update flag from the counter
-  
+
 }
 
 void system_init(void) {
@@ -118,33 +118,33 @@ int main(void)
   int value = 0;
   bool motor = 0;
   bool dir = 0;
-  int motor_pos = 0;  
+  int motor_pos = 0;
   int flag = 0;
-  
+
   setvbuf(stdin,NULL,_IONBF,0); // Sets stdin in unbuffered mode (normal for usart com)
   setvbuf(stdout,NULL,_IONBF,0); // Sets stdin in unbuffered mode (normal for usart com)
-  
+
   while (poll(stdin) > 0) {
     printf("Cleaning stdin\n");
     getc(stdin);
   }
 
   while (1){
-    /* If you want to test this code with an lying 
-     you should connect the tx and rx port
-    to the usart 2 for a stm32f4-disco11. This would
-    be PA2 and PA3 pins.*/
+    /* If you want to test this code with a stm32f4
+     *you should connect the tx and rx port
+     *to the usart 2 for a stm32f4-disco11. This would
+     *be PA2 and PA3 pins.*/
 
     //fprintf(stdout, "Pos: %d | Vel: %f | Accel: %f | Counter: %u \n", current_pos, current_vel, current_accel, counter);
     fprintf(stdout, "Past Pos: %ld | Current Pos: %ld | TICKS TIME: %f | Counter: %ld | Current Vel: %f \n", (long)past_pos, (long)current_pos, TICKS_TIME, (long)counter, current_vel);
-    
+
     if ((poll(stdin) > 0)) {
       i=0;
       c=0;
       while (c!='\r') {
-	c=getc(stdin);
-	i++;
-	//putc(c, stdout);
+    c=getc(stdin);
+    i++;
+    //putc(c, stdout);
         //fprintf(stdout, " %u\n", c);
         // read firmware test
         char output;
@@ -156,7 +156,7 @@ int main(void)
         // read battery test
         float voltage;
         success = false;
-	success = read_main_battery(&voltage, ADDRESS);
+    success = read_main_battery(&voltage, ADDRESS);
         if (success) {
           fprintf(stdout, " %f\n", voltage);
         }
@@ -187,5 +187,5 @@ int main(void)
       }
     }
   }
-  
+
 }
