@@ -37,8 +37,7 @@
 #include "usart.h"
 #include "systick.h"
 
-volatile uint64_t counter=0;
-volatile unsigned int ticks;
+volatile uint64_t counter;
 volatile int64_t past_pos;
 volatile int64_t current_pos;
 volatile float past_vel;
@@ -83,6 +82,11 @@ void sys_tick_handler(void) {
 
   counter++; // this is counting how many systick handlers are called
   current_pos = timer_get_counter(TIM3);
+
+  if (counter > 5000) {
+    // when more than
+    current_vel = 0;
+  }
 
   if (past_pos == current_pos) {
     return;
