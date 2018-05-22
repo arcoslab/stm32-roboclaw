@@ -69,7 +69,7 @@ void exti0_isr(void) {
    * for more info
    */
   exti_reset_request(EXTI_x); // reset the interruption flag
-  ticks++;
+  //ticks++;
 
 }
 
