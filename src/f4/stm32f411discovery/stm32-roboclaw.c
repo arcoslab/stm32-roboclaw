@@ -146,9 +146,9 @@ int main(void)
       i=0;
       c=0;
       while (c!='\r') {
-    c=getc(stdin);
-    i++;
-    //putc(c, stdout);
+        c=getc(stdin);
+        i++;
+        //putc(c, stdout);
         //fprintf(stdout, " %u\n", c);
         // read firmware test
         char output;
@@ -160,7 +160,7 @@ int main(void)
         // read battery test
         float voltage;
         success = false;
-    success = read_main_battery(&voltage, ADDRESS);
+        success = read_main_battery(&voltage, ADDRESS);
         if (success) {
           fprintf(stdout, " %f\n", voltage);
         }
@@ -170,7 +170,8 @@ int main(void)
           success = move_motor(0, ADDRESS, value, dir);
         }
         if (c == 119){//move forward with w
-          success = false;
+
+          success = false
           value += 1;
           success = move_motor(0, ADDRESS, value, dir);
         }
