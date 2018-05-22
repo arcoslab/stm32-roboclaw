@@ -61,8 +61,7 @@ void encoder_init(void) {
   past_pos = 0;
   past_vel = 0.0;
   current_vel = 0.0;
-  accel_o = 0.0;
-  accel_f = 0.0;
+  current_accel = 0.0;
   uif = 0;
 }
 
@@ -83,18 +82,17 @@ void sys_tick_handler(void) {
    */
   
   counter++; // this is counting how many systick handlers are called
-  current_pos = timer_get_counter(TIM3);
+  current_pos = (int64_t) timer_get_counter(TIM3);
 
   if (past_pos == current_pos) {
     return;
   }
 
-  current_vel = (float) (past_pos - current_pos) / (float) counter * TICKS_TIME;
+  current_vel = (float) (past_pos - current_pos)/(((float) counter) * TICKS_TIME);
 
   past_vel = current_vel;
   past_pos = current_pos;
   counter = 0;
-
     
   //uif = timer_get_flag(TIM3, TIM_SR_UIF); // get the update flag from the counter
   
@@ -137,14 +135,9 @@ int main(void)
     to the usart 2 for a stm32f4-disco11. This would
     be PA2 and PA3 pins.*/
 
-    motor_pos = timer_get_counter(TIM3);
-    flag = timer_get_flag(TIM3, TIM_SR_UIF); // get the udpate interrupt flag
-    fprintf(stdout, "Pos: %d | Vel: %f | Accel: %f | Counter: %u \n", current_pos, current_vel, accel_f, counter);
-    //fprintf(stdout, "Motor: %d  || UIF: %d \n", motor_pos, flag);
-    //fprintf(stdout, "Test | counter value: %d \n", counter);
-    //printf("Test\n");
+    //fprintf(stdout, "Pos: %d | Vel: %f | Accel: %f | Counter: %u \n", current_pos, current_vel, current_accel, counter);
+    fprintf(stdout, "Past Pos: %ld | Current Pos: %ld | TICKS TIME: %f | Counter: %ld | Current Vel: %f \n", (long)past_pos, (long)current_pos, TICKS_TIME, (long)counter, current_vel);
     
-
     if ((poll(stdin) > 0)) {
       i=0;
       c=0;

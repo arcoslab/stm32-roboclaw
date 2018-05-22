@@ -5,9 +5,8 @@
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/rcc.h>
 
-#define TICKS 1
 #define SYS_TICK_AUTORELOAD 839
-#define TICKS_TIME 0.0001
+#define TICKS_TIME 0.000001
 #define TICKS_PER_REV 3408
 
 void systick_init(void);
