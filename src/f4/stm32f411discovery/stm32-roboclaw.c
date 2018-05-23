@@ -36,8 +36,12 @@
 #include "timers.h"
 #include "usart.h"
 #include "systick.h"
+#include "encoder.h"
+
+#define FILTER_SIZE 2
 
 volatile uint64_t counter;
+volatile int16_t past_counter;
 volatile int64_t past_pos;
 volatile int64_t current_pos;
 volatile float past_vel;
@@ -48,20 +52,6 @@ volatile unsigned int uif;
 void leds_init(void) {
   rcc_periph_clock_enable(RCC_GPIOE);
   gpio_mode_setup(GPIOD, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO12| GPIO13| GPIO14| GPIO15);
-}
-
-void encoder_init(void) {
-  /* This only resets the variables used to
-   * store the encoder pos, vel and accel during
-   the init
-  */
-  counter = 0;
-  current_pos = 0;
-  past_pos = 0;
-  past_vel = 0.0;
-  current_vel = 0.0;
-  current_accel = 0.0;
-  uif = 0;
 }
 
 void exti0_isr(void) {
@@ -84,12 +74,17 @@ void sys_tick_handler(void) {
   current_pos = timer_get_counter(TIM3);
 
   if (counter > 5000) {
-    // when more than
+    // when more than 50ms has passed
     current_vel = 0;
   }
 
   if (past_pos == current_pos) {
     return;
+  }
+
+  uif = timer_get_flag(TIM3, TIM_SR_UIF);
+  if(uif == 1){
+
   }
 
   current_vel = (float) (past_pos - current_pos)/(((float) counter) * TICKS_TIME);
@@ -111,7 +106,8 @@ void system_init(void) {
   exti_init();
   tim_init();
   systick_init();
-  encoder_init();
+  encoder motor_fl;
+  encoder_init(motor_fl);
 }
 
 int main(void)
@@ -171,7 +167,7 @@ int main(void)
         }
         if (c == 119){//move forward with w
 
-          success = false
+          success = false;
           value += 1;
           success = move_motor(0, ADDRESS, value, dir);
         }
