@@ -21,6 +21,7 @@
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/exti.h>
 #include <libopencm3/cm3/systick.h>
+#include <libopencm3/stm32/usart.h>
 #include <libopencm3-plus/newlib/syscall.h>
 #include <libopencm3-plus/cdcacm_one_serial/cdcacm.h>
 #include <libopencm3-plus/utils/misc.h>
@@ -102,8 +103,16 @@ void system_init(void) {
   rcc_clock_setup_hse_3v3(&rcc_hse_8mhz_3v3[RCC_CLOCK_3V3_120MHZ]);
   leds_init();
   cdcacm_init();
-  usart_init();
-  exti_init();
+  usart_port roboclaw_port;
+  roboclaw_port.usart = USART2;
+  roboclaw_port.baudrate = 115200;
+  roboclaw_port.gpio_port = GPIOA;
+  roboclaw_port.gpio_pin = GPIO2 | GPIO3;
+  roboclaw_port.gpio_af = GPIO_AF7;
+  roboclaw_port.clken = RCC_GPIOA;
+  roboclaw_port.clken_usart = RCC_USART2;
+  usart_init(roboclaw_port);
+  //exti_init();
   tim_init();
   systick_init();
   encoder motor_fl;
@@ -136,7 +145,8 @@ int main(void)
      *be PA2 and PA3 pins.*/
 
     //fprintf(stdout, "Pos: %d | Vel: %f | Accel: %f | Counter: %u \n", current_pos, current_vel, current_accel, counter);
-    fprintf(stdout, "Past Pos: %ld | Current Pos: %ld | TICKS TIME: %f | Counter: %ld | Current Vel: %f \n", (long)past_pos, (long)current_pos, TICKS_TIME, (long)counter, current_vel);
+    //fprintf(stdout, "Past Pos: %ld | Current Pos: %ld | TICKS TIME: %f | Counter: %ld | Current Vel: %f \n", (long)past_pos, (long)current_pos, TICKS_TIME, (long)counter, current_vel);
+    fprintf(stdout, "test\n");
 
     if ((poll(stdin) > 0)) {
       i=0;
