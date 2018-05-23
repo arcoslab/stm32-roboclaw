@@ -22,19 +22,5 @@ bool encoder_update(encoder encoder_x, uint64_t systick_counter, uint16_t curren
    * the systick counter should be reset
    */
 
-  if ()
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
