@@ -16,13 +16,6 @@ def process_line(ser, pattern, line1, fig):
         print(match.group('vel'))
         fig_update(float(match.group('vel')), line1, fig)
 
-def update():
-    y = match.group('vel')
-    y = float(y)/1000
-    plt.plot(i+30, y, marker='.')
-    plt.pause(0.02)
-    plt.axis([0+i, 30+i, 0, 1])
-
 def write_char(char,ser):
     ser.write(char.encode('utf-8'))
     enter(ser)
