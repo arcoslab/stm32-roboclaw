@@ -1,24 +1,24 @@
 #include "usart.h"
 
-void usart_init(void) {
+void usart_init(usart_port usart_port_x) {
   /* RX is S1, TX is S2 on the roboclaw
      o
    * PA3 is RX, PA2 is TX on the stm
    */
-  rcc_periph_clock_enable(CLKEN_x);
-  gpio_mode_setup(GPIO_PORT_x, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO_PIN_x);
-  gpio_set_af(GPIO_PORT_x, GPIO_AF_x, GPIO_PIN_x);
+  rcc_periph_clock_enable(usart_port_x.clken);
+  gpio_mode_setup(usart_port_x.gpio_port, GPIO_MODE_AF, GPIO_PUPD_NONE, usart_port_x.gpio_pin);
+  gpio_set_af(usart_port_x.gpio_port, usart_port_x.gpio_af, usart_port_x.gpio_pin);
 
-  rcc_periph_clock_enable(CLKEN_USART_x);
+  rcc_periph_clock_enable(usart_port_x.clken_usart);
 
-  /* Setup USART_x parameters. */
-  usart_set_baudrate(USART_x, BAUDRATE);
-  usart_set_databits(USART_x, 8);
-  usart_set_stopbits(USART_x, USART_STOPBITS_1);
-  usart_set_mode(USART_x, USART_MODE_TX_RX);
-  usart_set_parity(USART_x, USART_PARITY_NONE);
-  usart_set_flow_control(USART_x, USART_FLOWCONTROL_NONE);
+  /* Setup usart_port_x.usart parameters. */
+  usart_set_baudrate(usart_port_x.usart, usart_port.baudrate);
+  usart_set_databits(usart_port_x.usart, 8);
+  usart_set_stopbits(usart_port_x.usart, USART_STOPBITS_1);
+  usart_set_mode(usart_port_x.usart, USART_MODE_TX_RX);
+  usart_set_parity(usart_port_x.usart, USART_PARITY_NONE);
+  usart_set_flow_control(usart_port_x.usart, USART_FLOWCONTROL_NONE);
 
   /* Finally enable the USART. */
-  usart_enable(USART_x);
+  usart_enable(usart_port_x.usart);
 }
