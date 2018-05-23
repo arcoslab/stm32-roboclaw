@@ -13,7 +13,7 @@ def process_line(ser, pattern, line1, fig):
     line = ser.readline().decode('utf-8')
     match = re.match(pattern, line)
     if match:
-        print(match.group('vel'))
+        print(match.group('cpos'))
         fig_update(float(match.group('vel')), line1, fig)
 
 def write_char(char,ser):
