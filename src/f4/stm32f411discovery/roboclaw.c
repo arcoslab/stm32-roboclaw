@@ -18,6 +18,7 @@
 
 
 #include "roboclaw.h"
+#include "motor.h"
 
 uint16_t crc16(unsigned char *packet, int nBytes) {
   uint16_t crc=0;
@@ -52,11 +53,11 @@ bool drive_motor(motor motor_x, int16_t vel) {
 
   value = (vel>=0 ? vel:-vel);
 
-  return drive_motor_fwd_bwd(motor_x.motor, motor_x.address, value, direction);
+  return drive_motor_fwd_bwd(motor_x.code, motor_x.address, value, direction);
 
 }
 
-bool drive_motor_fwd_bwd(bool motor, uint8_t address, uint8_t value, bool direction) {
+bool drive_motor_fwd_bwd(bool motor_code, uint8_t address, uint8_t value, bool direction) {
   /* Returns true if the motors moves succesfully, or
      false if didn't receive 0xff. motor is 0 for motor 1
      and 1 for motor 2. 127 is for full speed, 64 is about half
@@ -69,19 +70,19 @@ bool drive_motor_fwd_bwd(bool motor, uint8_t address, uint8_t value, bool direct
   data[0] = address; //first to write is address
   usart_send_blocking(USART_x, data[0]); //send address
 
-  if ((motor == 0) & (direction == 1)) {
+  if ((motor_code == 0) & (direction == 1)) {
     // move motor 1 forward
     data[1] = (unsigned char) DRIVE_FWD_1;
   }
-  if ((motor == 0) & (direction == 0)) {
+  if ((motor_code == 0) & (direction == 0)) {
     // move motor 1 backward
     data[1] = (unsigned char) DRIVE_BWD_1;
   }
-  if ((motor == 1) & (direction == 1)) {
+  if ((motor_code == 1) & (direction == 1)) {
     // move motor 2 forward
     data[1] = (unsigned char) DRIVE_FWD_2;
   }
-  if ((motor == 1) & (direction == 0)) {
+  if ((motor_code == 1) & (direction == 0)) {
     // move motor 2 backwards
     data[1] = (unsigned char) DRIVE_BWD_2;
   }

@@ -38,6 +38,7 @@
 #include "usart.h"
 #include "systick.h"
 #include "encoder.h"
+#include "motor.h"
 
 #define FILTER_SIZE 2
 
@@ -112,29 +113,26 @@ void system_init(void) {
   roboclaw_port.clken = RCC_GPIOA;
   roboclaw_port.clken_usart = RCC_USART2;
   usart_init(roboclaw_port);
+  encoder motor_fl_encoder;
+  encoder_init(motor_fl_encoder);
+
   //exti_init();
   tim_init();
   systick_init();
-  encoder motor_fl_encoder;
-  encoder_init(motor_fl_encoder);
 }
 
 int main(void)
 {
+
   static motor motorfl_motor; // static is necesary to mantain this values
   motorfl_motor.usart = USART2;
   motorfl_motor.address = 128;
-  motorfl_motor.motor = 0;
-
-
+  motorfl_motor.code = 0;
   system_init();
   int i;
   int c=0;
   int value = 0;
-  bool motor = 0;
   bool dir = 0;
-  int motor_pos = 0;
-  int flag = 0;
 
   setvbuf(stdin,NULL,_IONBF,0); // Sets stdin in unbuffered mode (normal for usart com)
   setvbuf(stdout,NULL,_IONBF,0); // Sets stdin in unbuffered mode (normal for usart com)
@@ -153,7 +151,7 @@ int main(void)
     //fprintf(stdout, "Pos: %d | Vel: %f | Accel: %f | Counter: %u \n", current_pos, current_vel, current_accel, counter);
     //fprintf(stdout, "Past Pos: %ld | Current Pos: %ld | TICKS TIME: %f | Counter: %ld | Current Vel: %f \n", (long)past_pos, (long)current_pos, TICKS_TIME, (long)counter, current_vel);
     //fprintf(stdout, "test\n");
-    fprintf(stdout, "POS: %lld | VALUE: %d | MOTRO: %d \n", current_pos, value, motorfl_motor.motor);
+    fprintf(stdout, "POS: %lld | VALUE: %d | MOTRO: %d \n", current_pos, value, motorfl_motor.code);
 
     if ((poll(stdin) > 0)) {
       i=0;

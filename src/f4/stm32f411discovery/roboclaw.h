@@ -8,6 +8,7 @@
 #include <string.h>
 #include <libopencm3/stm32/usart.h>
 #include "usart.h"
+#include "motor.h"
 
 #define DRIVE_FWD_1 0
 #define DRIVE_BWD_1 1
@@ -15,16 +16,6 @@
 #define DRIVE_BWD_2 5
 #define GET_FIRMWARE 21
 #define GET_MAIN_BATT 24
-
-typedef struct motor {
-  /* Virtual make motors appears as different
-   * and the contents inside this struct will manage
-   * to use the right usart com port and address
-  */
-  uint32_t usart; // com port defined by the usart init
-  uint8_t address; // address to corresponding roboclaw in that port
-  bool motor; // each roboclaw has two motors. Choose between them
-} motor;
 
 uint16_t crc16(unsigned char *packet, int nBytes);
 bool read_firmware(char* output, uint8_t address);

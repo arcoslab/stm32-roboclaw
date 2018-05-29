@@ -1,3 +1,6 @@
+#ifndef ENCODER_H
+#define ENCODER_H
+
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -15,3 +18,5 @@ typedef struct encoder {
 
 void encoder_init(encoder encoder_x);
 bool encoder_update(encoder encoder_x, uint64_t systick_counter, uint16_t current_timer_counter, bool uif);
+
+#endif
