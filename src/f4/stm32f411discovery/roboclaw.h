@@ -26,10 +26,10 @@ typedef struct motor {
   bool motor; // each roboclaw has two motors. Choose between them
 } motor;
 
-bool move(motor motor_x, int16_t vel);
-bool read_firmware(char* output, uint8_t address);
-bool move_motor(bool motor, uint8_t address, uint8_t value, bool direction);
-bool read_main_battery(float *voltage, uint8_t address);
 uint16_t crc16(unsigned char *packet, int nBytes);
+bool read_firmware(char* output, uint8_t address);
+bool read_main_battery(float *voltage, uint8_t address);
+bool drive_motor(motor motor_x, int16_t vel);
+bool drive_motor_fwd_bwd(bool motor, uint8_t address, uint8_t value, bool direction);
 
 #endif

@@ -34,8 +34,8 @@ uint16_t crc16(unsigned char *packet, int nBytes) {
   return crc;
 }
 
-bool move(motor motor_x, int16_t vel) {
-  /* This wrapper function will call move motor. This will support
+bool drive_motor(motor motor_x, int16_t vel) {
+  /* This wrapper function will call drive motor fwd or bwd. This will support
    * negative and positie values as commands, and will manage the cases when
    * the value is not within the range. Negative values will mean the opposite
    * direction.
@@ -52,11 +52,11 @@ bool move(motor motor_x, int16_t vel) {
 
   value = (vel>=0 ? vel:-vel);
 
-  return move_motor(motor_x.motor, motor_x.address, value, direction);
+  return drive_motor_fwd_bwd(motor_x.motor, motor_x.address, value, direction);
 
 }
 
-bool move_motor(bool motor, uint8_t address, uint8_t value, bool direction) {
+bool drive_motor_fwd_bwd(bool motor, uint8_t address, uint8_t value, bool direction) {
   /* Returns true if the motors moves succesfully, or
      false if didn't receive 0xff. motor is 0 for motor 1
      and 1 for motor 2. 127 is for full speed, 64 is about half
