@@ -15,7 +15,7 @@ typedef struct motor {
   uint8_t address; // address to corresponding roboclaw in that port
   bool code; // each roboclaw has two motors. Choose between them
 //  encoder encoder; // encoder related to this motor
-//  usart_port usart_port; // usart port where the roboclaw for this motor is
+  usart_port port; // usart port where the roboclaw for this motor is
 } motor;
 
 #endif

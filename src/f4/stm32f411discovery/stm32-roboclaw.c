@@ -51,6 +51,10 @@ volatile float current_vel;
 volatile float current_accel;
 volatile unsigned int uif;
 
+static usart_port roboclaw_port;
+static encoder motor_fl_encoder;
+static motor motorfl_motor; // static is necesary to mantain this values
+
 void leds_init(void) {
   rcc_periph_clock_enable(RCC_GPIOE);
   gpio_mode_setup(GPIOD, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO12| GPIO13| GPIO14| GPIO15);
@@ -104,7 +108,6 @@ void system_init(void) {
   rcc_clock_setup_hse_3v3(&rcc_hse_8mhz_3v3[RCC_CLOCK_3V3_120MHZ]);
   leds_init();
   cdcacm_init();
-  usart_port roboclaw_port;
   roboclaw_port.usart = USART2;
   roboclaw_port.baudrate = 115200;
   roboclaw_port.gpio_port = GPIOA;
@@ -113,7 +116,7 @@ void system_init(void) {
   roboclaw_port.clken = RCC_GPIOA;
   roboclaw_port.clken_usart = RCC_USART2;
   usart_init(roboclaw_port);
-  encoder motor_fl_encoder;
+  //encoder motor_fl_encoder; // define the value globally
   encoder_init(motor_fl_encoder);
 
   //exti_init();
@@ -123,12 +126,11 @@ void system_init(void) {
 
 int main(void)
 {
-
-  static motor motorfl_motor; // static is necesary to mantain this values
+  system_init();
   motorfl_motor.usart = USART2;
   motorfl_motor.address = 128;
   motorfl_motor.code = 0;
-  system_init();
+  motorfl_motor.port = roboclaw_port; // add the usart port here
   int i;
   int c=0;
   int value = 0;
@@ -164,14 +166,14 @@ int main(void)
         // read firmware test
         char output;
         //bool success = false;
-        bool success = read_firmware(&output, ADDRESS);
+        bool success = read_firmware(&output, motorfl_motor);
         if (success) {
           fprintf(stdout, "%s", &output);
         }// if success
         // read battery test
         float voltage;
         success = false;
-        success = read_main_battery(&voltage, ADDRESS);
+        success = read_main_battery(&voltage, motorfl_motor);
         if (success) {
           fprintf(stdout, " %f\n", voltage);
         }
@@ -189,18 +191,18 @@ int main(void)
         if (c == 112){//WARNING dont change direction while moving fast
           success = false;
           dir = !dir;
-          success = drive_motor_fwd_bwd(0, ADDRESS, value, dir);
+          success = drive_motor_fwd_bwd(motorfl_motor, value, dir);
         }
         if (c == 119){//move forward with w
 
           success = false;
           value += 1;
-          success = drive_motor_fwd_bwd(0, ADDRESS, value, dir);
+          success = drive_motor_fwd_bwd(motorfl_motor, value, dir);
         }
         if (c == 115){//move backward with s
           success = false;
           value -= 1;
-          success = drive_motor_fwd_bwd(0, ADDRESS, value, dir);
+          success = drive_motor_fwd_bwd(motorfl_motor, value, dir);
         }
         if(success){
           fprintf(stdout, "ACK\n");

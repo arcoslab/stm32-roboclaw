@@ -18,9 +18,9 @@
 #define GET_MAIN_BATT 24
 
 uint16_t crc16(unsigned char *packet, int nBytes);
-bool read_firmware(char* output, uint8_t address);
-bool read_main_battery(float *voltage, uint8_t address);
+bool read_firmware(char* output, motor motor_x);
+bool read_main_battery(float *voltage, motor motor_x);
 bool drive_motor(motor motor_x, int16_t vel);
-bool drive_motor_fwd_bwd(bool motor, uint8_t address, uint8_t value, bool direction);
+bool drive_motor_fwd_bwd(motor motor_x, uint8_t value, bool direction);
 
 #endif
