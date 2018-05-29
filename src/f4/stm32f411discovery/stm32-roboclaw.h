@@ -16,8 +16,5 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define ADDRESS 128
-#define COUNTER_RELOAD 10000
-
 void system_init(void);
 void leds_init(void);

@@ -40,20 +40,18 @@
 #include "encoder.h"
 #include "motor.h"
 
-#define FILTER_SIZE 2
+static usart_port roboclaw_port;
+static encoder motorfl_encoder;
+static timer motorfl_timer;
+static motor motorfl; // static is necesary to mantain this values
+static motor motorfr;
 
 volatile uint64_t counter;
-volatile int16_t past_counter;
-volatile int64_t past_pos;
-volatile int64_t current_pos;
+volatile uint64_t current_pos;
+volatile uint64_t past_pos;
+volatile bool uif;
 volatile float past_vel;
 volatile float current_vel;
-volatile float current_accel;
-volatile unsigned int uif;
-
-static usart_port roboclaw_port;
-static encoder motor_fl_encoder;
-static motor motorfl_motor; // static is necesary to mantain this values
 
 void leds_init(void) {
   rcc_periph_clock_enable(RCC_GPIOE);
@@ -103,11 +101,7 @@ void sys_tick_handler(void) {
 
 }
 
-void system_init(void) {
-  /* This setup is using a STM32F411-disco, other versions may vary */
-  rcc_clock_setup_hse_3v3(&rcc_hse_8mhz_3v3[RCC_CLOCK_3V3_120MHZ]);
-  leds_init();
-  cdcacm_init();
+void usart_config(void) {
   roboclaw_port.usart = USART2;
   roboclaw_port.baudrate = 115200;
   roboclaw_port.gpio_port = GPIOA;
@@ -116,21 +110,56 @@ void system_init(void) {
   roboclaw_port.clken = RCC_GPIOA;
   roboclaw_port.clken_usart = RCC_USART2;
   usart_init(roboclaw_port);
-  //encoder motor_fl_encoder; // define the value globally
-  encoder_init(motor_fl_encoder);
+}
 
-  //exti_init();
-  tim_init();
+void encoder_config(void) {
+  encoder_init(motorfl_encoder);
+}
+
+void timers_config(void) {
+  motorfl_timer.clken = RCC_GPIOB;
+  motorfl_timer.clken_timer = RCC_TIM3;
+  motorfl_timer.gpio_port = GPIOB;
+  motorfl_timer.gpio_pin = GPIO4 | GPIO5;
+  motorfl_timer.period = 65535;
+  motorfl_timer.peripheral = TIM3;
+  motorfl_timer.gpio_af = GPIO_AF2;
+  motorfl_timer.ic1 = TIM_IC1;
+  motorfl_timer.in1 = TIM_IC_IN_TI1;
+  motorfl_timer.ic2 = TIM_IC2;
+  motorfl_timer.in2 = TIM_IC_IN_TI2;
+  motorfl_timer.mode = 0x3;
+  tim_init(motorfl_timer);
+}
+
+void motors_config(void) {
+  motorfl.address = 128;
+  motorfl.code = 0;
+  motorfl.port = roboclaw_port; // add the usart port here
+  motorfl.encoder_timer = motorfl_timer;
+  motorfr.address = 128;
+  motorfr.code = 1;
+  motorfr.port = roboclaw_port;
+}
+
+void system_init(void) {
+  /* This setup is using a STM32F411-disco, other versions may vary */
+  rcc_clock_setup_hse_3v3(&rcc_hse_8mhz_3v3[RCC_CLOCK_3V3_120MHZ]);
+
+  usart_config(); // this config functions can be used with other ports and functions
+  encoder_config();
+  motors_config();
+  timers_config();
+
+  leds_init();
+  cdcacm_init();
   systick_init();
 }
 
 int main(void)
 {
   system_init();
-  motorfl_motor.usart = USART2;
-  motorfl_motor.address = 128;
-  motorfl_motor.code = 0;
-  motorfl_motor.port = roboclaw_port; // add the usart port here
+
   int i;
   int c=0;
   int value = 0;
@@ -153,7 +182,7 @@ int main(void)
     //fprintf(stdout, "Pos: %d | Vel: %f | Accel: %f | Counter: %u \n", current_pos, current_vel, current_accel, counter);
     //fprintf(stdout, "Past Pos: %ld | Current Pos: %ld | TICKS TIME: %f | Counter: %ld | Current Vel: %f \n", (long)past_pos, (long)current_pos, TICKS_TIME, (long)counter, current_vel);
     //fprintf(stdout, "test\n");
-    fprintf(stdout, "POS: %lld | VALUE: %d | MOTRO: %d \n", current_pos, value, motorfl_motor.code);
+    fprintf(stdout, "POS: %lld | VALUE: %d | MOTRO: %d \n", current_pos, value, motorfl.code);
 
     if ((poll(stdin) > 0)) {
       i=0;
@@ -166,43 +195,45 @@ int main(void)
         // read firmware test
         char output;
         //bool success = false;
-        bool success = read_firmware(&output, motorfl_motor);
+        bool success = read_firmware(&output, motorfl);
         if (success) {
           fprintf(stdout, "%s", &output);
         }// if success
         // read battery test
         float voltage;
         success = false;
-        success = read_main_battery(&voltage, motorfl_motor);
+        success = read_main_battery(&voltage, motorfl);
         if (success) {
           fprintf(stdout, " %f\n", voltage);
         }
         if (c == 49){
           success = false;
           value += 1;
-          success = drive_motor(motorfl_motor, value);
+          success = drive_motor(motorfl, value);
+          success = drive_motor(motorfr, value);
         }
         if (c == 50){
           success = false;
           value-=1;
-          success = drive_motor(motorfl_motor, value);
+          success = drive_motor(motorfl, value);
+          success = drive_motor(motorfr, value);
         }
 
         if (c == 112){//WARNING dont change direction while moving fast
           success = false;
           dir = !dir;
-          success = drive_motor_fwd_bwd(motorfl_motor, value, dir);
+          success = drive_motor_fwd_bwd(motorfl, value, dir);
         }
         if (c == 119){//move forward with w
 
           success = false;
           value += 1;
-          success = drive_motor_fwd_bwd(motorfl_motor, value, dir);
+          success = drive_motor_fwd_bwd(motorfl, value, dir);
         }
         if (c == 115){//move backward with s
           success = false;
           value -= 1;
-          success = drive_motor_fwd_bwd(motorfl_motor, value, dir);
+          success = drive_motor_fwd_bwd(motorfl, value, dir);
         }
         if(success){
           fprintf(stdout, "ACK\n");
