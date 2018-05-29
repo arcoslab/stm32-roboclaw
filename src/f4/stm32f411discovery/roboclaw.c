@@ -34,19 +34,41 @@ uint16_t crc16(unsigned char *packet, int nBytes) {
   return crc;
 }
 
+bool move(motor motor_x, int16_t vel) {
+  /* This wrapper function will call move motor. This will support
+   * negative and positie values as commands, and will manage the cases when
+   * the value is not within the range. Negative values will mean the opposite
+   * direction.
+   */
+  bool direction;
+  uint8_t value;
+
+  if(vel >= 0){
+    direction = true;
+  }
+  else {
+    direction = false;
+  }
+
+  value = (vel>=0 ? vel:-vel);
+
+  return move_motor(motor_x.motor, motor_x.address, value, direction);
+
+}
+
 bool move_motor(bool motor, uint8_t address, uint8_t value, bool direction) {
   /* Returns true if the motors moves succesfully, or
      false if didn't receive 0xff. motor is 0 for motor 1
      and 1 for motor 2. 127 is for full speed, 64 is about half
      speed, and 0 is full stop. If direction is 0 then it will move
-     backwards, if direction is 1 it will move forward. 
+     backwards, if direction is 1 it will move forward.
   */
 
   unsigned char data[6]; // address, cmd, value, 2byte crc
 
   data[0] = address; //first to write is address
   usart_send_blocking(USART_x, data[0]); //send address
-  
+
   if ((motor == 0) & (direction == 1)) {
     // move motor 1 forward
     data[1] = (unsigned char) DRIVE_FWD_1;
@@ -65,7 +87,7 @@ bool move_motor(bool motor, uint8_t address, uint8_t value, bool direction) {
   }
 
   usart_send_blocking(USART_x, data[1]); //send cmd
-  
+
   if(value > 127){
     // invalid input value
     return false;
@@ -83,27 +105,27 @@ bool move_motor(bool motor, uint8_t address, uint8_t value, bool direction) {
   usart_send_blocking(USART_x, data[4]); //send low byte crc
 
   data[5] = usart_recv_blocking(USART_x);
-  
+
   if(data[5] == ((char)255)){
     return true; //ack code sent
   }
   else {
     return false;
   }
-  
+
 }
 
 bool read_firmware(char *output, uint8_t address) {
-  /* Returns true if operation was succesful, 
+  /* Returns true if operation was succesful,
      False otherwise. Also if outcome is true
      the firmware version will be printed
-     in the output 
+     in the output
   */
 
   unsigned char data[50]; //two bytes for address and cmd, and up to 48 to response
   data[0] = address;
   data[1] = (unsigned char) GET_FIRMWARE;
-    
+
   //unsigned int a = 0;
   usart_send_blocking(USART_x, data[0]);
   usart_send_blocking(USART_x, data[1]);
@@ -114,7 +136,7 @@ if (((uint8_t)(data[i-1]) == 10) & ((uint8_t)(data[i]) == 0)) {//if this is 10, 
       break;
     }
   }// write all response to data[i]
-  
+
   unsigned char crc_rcv[2]; // receive the crc
   crc_rcv[0] = usart_recv_blocking(USART_x);
   crc_rcv[1] = usart_recv_blocking(USART_x);
@@ -129,7 +151,7 @@ if (((uint8_t)(data[i-1]) == 10) & ((uint8_t)(data[i]) == 0)) {//if this is 10, 
   else {
     return false;
   }
-  
+
 }
 
 bool read_main_battery(float *voltage, uint8_t address) {
@@ -140,10 +162,10 @@ bool read_main_battery(float *voltage, uint8_t address) {
   */
 
   unsigned char data[4]; // two bytes for address and cmd, two for value
-  
+
   data[0] = address; //first to write is address
-  data[1] = (unsigned char) GET_MAIN_BATT; // second is cmd 
-  
+  data[1] = (unsigned char) GET_MAIN_BATT; // second is cmd
+
   usart_send_blocking(USART_x, data[0]); // send first address and cmd
   usart_send_blocking(USART_x, data[1]);
 

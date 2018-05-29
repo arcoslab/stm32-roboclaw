@@ -115,12 +115,18 @@ void system_init(void) {
   //exti_init();
   tim_init();
   systick_init();
-  encoder motor_fl;
-  encoder_init(motor_fl);
+  encoder motor_fl_encoder;
+  encoder_init(motor_fl_encoder);
 }
 
 int main(void)
 {
+  static motor motorfl_motor; // static is necesary to mantain this values
+  motorfl_motor.usart = USART2;
+  motorfl_motor.address = 128;
+  motorfl_motor.motor = 0;
+
+
   system_init();
   int i;
   int c=0;
@@ -146,7 +152,8 @@ int main(void)
 
     //fprintf(stdout, "Pos: %d | Vel: %f | Accel: %f | Counter: %u \n", current_pos, current_vel, current_accel, counter);
     //fprintf(stdout, "Past Pos: %ld | Current Pos: %ld | TICKS TIME: %f | Counter: %ld | Current Vel: %f \n", (long)past_pos, (long)current_pos, TICKS_TIME, (long)counter, current_vel);
-    fprintf(stdout, "test\n");
+    //fprintf(stdout, "test\n");
+    fprintf(stdout, "POS: %lld | VALUE: %d | MOTRO: %d \n", current_pos, value, motorfl_motor.motor);
 
     if ((poll(stdin) > 0)) {
       i=0;
@@ -170,6 +177,17 @@ int main(void)
         if (success) {
           fprintf(stdout, " %f\n", voltage);
         }
+        if (c == 49){
+          success = false;
+          value += 1;
+          success = move(motorfl_motor, value);
+        }
+        if (c == 50){
+          success = false;
+          value-=1;
+          success = move(motorfl_motor, value);
+        }
+
         if (c == 112){//WARNING dont change direction while moving fast
           success = false;
           dir = !dir;

@@ -16,6 +16,17 @@
 #define GET_FIRMWARE 21
 #define GET_MAIN_BATT 24
 
+typedef struct motor {
+  /* Virtual make motors appears as different
+   * and the contents inside this struct will manage
+   * to use the right usart com port and address
+  */
+  uint32_t usart; // com port defined by the usart init
+  uint8_t address; // address to corresponding roboclaw in that port
+  bool motor; // each roboclaw has two motors. Choose between them
+} motor;
+
+bool move(motor motor_x, int16_t vel);
 bool read_firmware(char* output, uint8_t address);
 bool move_motor(bool motor, uint8_t address, uint8_t value, bool direction);
 bool read_main_battery(float *voltage, uint8_t address);
