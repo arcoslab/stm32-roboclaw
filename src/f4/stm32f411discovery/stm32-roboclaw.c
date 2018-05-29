@@ -191,18 +191,18 @@ int main(void)
         if (c == 112){//WARNING dont change direction while moving fast
           success = false;
           dir = !dir;
-          success = drive_motor_fwd_or_bwd(0, ADDRESS, value, dir);
+          success = drive_motor_fwd_bwd(0, ADDRESS, value, dir);
         }
         if (c == 119){//move forward with w
 
           success = false;
           value += 1;
-          success = drive_motor_fwd_or_bwd(0, ADDRESS, value, dir);
+          success = drive_motor_fwd_bwd(0, ADDRESS, value, dir);
         }
         if (c == 115){//move backward with s
           success = false;
           value -= 1;
-          success = drive_motor_fwd_or_bwd(0, ADDRESS, value, dir);
+          success = drive_motor_fwd_bwd(0, ADDRESS, value, dir);
         }
         if(success){
           fprintf(stdout, "ACK\n");
