@@ -131,19 +131,19 @@ bool read_firmware(char *output, motor motor_x) {
   data[1] = (unsigned char) GET_FIRMWARE;
 
   //unsigned int a = 0;
-  usart_send_blocking(USART_x, data[0]);
-  usart_send_blocking(USART_x, data[1]);
+  usart_send_blocking(motor_x.port.usart, data[0]);
+  usart_send_blocking(motor_x.port.usart, data[1]);
 
   for(int i=2; i<51; i++) {// max response size is 48 bytes
-    data[i] = usart_recv_blocking(USART_x);
+    data[i] = usart_recv_blocking(motor_x.port.usart);
 if (((uint8_t)(data[i-1]) == 10) & ((uint8_t)(data[i]) == 0)) {//if this is 10, 0
       break;
     }
   }// write all response to data[i]
 
   unsigned char crc_rcv[2]; // receive the crc
-  crc_rcv[0] = usart_recv_blocking(USART_x);
-  crc_rcv[1] = usart_recv_blocking(USART_x);
+  crc_rcv[0] = usart_recv_blocking(motor_x.port.usart);
+  crc_rcv[1] = usart_recv_blocking(motor_x.port.usart);
 
   int response_size = strlen(&data)+1;//size of the dat rcvd + \n
   uint16_t crc_chk = crc16(data, response_size); // calculate local checksum
@@ -170,16 +170,16 @@ bool read_main_battery(float *voltage, motor motor_x) {
   data[0] = motor_x.address; //first to write is address
   data[1] = (unsigned char) GET_MAIN_BATT; // second is cmd
 
-  usart_send_blocking(USART_x, data[0]); // send first address and cmd
-  usart_send_blocking(USART_x, data[1]);
+  usart_send_blocking(motor_x.port.usart, data[0]); // send first address and cmd
+  usart_send_blocking(motor_x.port.usart, data[1]);
 
   for(int i=2; i<4; i++) {
-    data[i] = usart_recv_blocking(USART_x);
+    data[i] = usart_recv_blocking(motor_x.port.usart);
   } // first two bytes rcvd are the battery voltage
 
   unsigned char crc_rcv[2]; // received crc values from roboclaw
-  crc_rcv[0] = usart_recv_blocking(USART_x);
-  crc_rcv[1] = usart_recv_blocking(USART_x);
+  crc_rcv[0] = usart_recv_blocking(motor_x.port.usart);
+  crc_rcv[1] = usart_recv_blocking(motor_x.port.usart);
 
   uint16_t crc_chk = crc16(data, 4); // calculate local checksum
 
