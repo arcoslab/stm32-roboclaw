@@ -5,9 +5,6 @@
 #include <libopencm3/stm32/timer.h>
 #include <libopencm3/stm32/gpio.h>
 
-/* This value indicates the autoreload for the timer counter */
-#define PERIOD 65535
-
 typedef struct timer {
   enum rcc_periph_clken clken;
   enum rcc_periph_clken clken_timer;
