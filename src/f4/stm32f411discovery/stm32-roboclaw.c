@@ -106,8 +106,10 @@ void timers_config(void) {
 void motors_config(void) {
   motorfl.address = 128;
   motorfl.code = 0;
-  motorfr.address = 128;
+  motorfl.clicks_per_rev = 3408;
+  motorfl.wheel_radius = 0.05; // in meters
 
+  motorfr.address = 128;
   motorfr.code = 1;
   motorfr.timer = motorfl.timer;
   motorfr.port = motorfl.port;

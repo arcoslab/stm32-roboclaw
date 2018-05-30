@@ -51,9 +51,13 @@ typedef struct motor {
   */
   uint8_t address; // address to corresponding roboclaw in that port
   bool code; // each roboclaw has two motors. Choose between them
+  uint8_t clicks_per_rev; // amount of encoder events for one complete output shaft revolution
+  uint8_t wheel_radius; // wheel radius to calculate circunference
   encoder encoder; // encoder related to this motor
   usart_port port; // usart port where the roboclaw for this motor is
   timer timer; // timer in stm for the encoder
 } motor;
+
+bool cmd_vel(motor *motor_x);
 
 #endif
