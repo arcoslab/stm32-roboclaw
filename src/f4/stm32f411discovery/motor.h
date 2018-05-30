@@ -17,7 +17,7 @@ typedef struct motor {
   bool code; // each roboclaw has two motors. Choose between them
   encoder encoder; // encoder related to this motor
   usart_port port; // usart port where the roboclaw for this motor is
-  timer encoder_timer; // timer in stm for the encoder
+  timer timer; // timer in stm for the encoder
 } motor;
 
 #endif
