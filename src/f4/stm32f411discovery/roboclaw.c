@@ -35,7 +35,7 @@ uint16_t crc16(unsigned char *packet, int nBytes) {
   return crc;
 }
 
-bool drive_motor(motor motor_x, int16_t vel) {
+bool drive_motor(motor *motor_x, int16_t vel) {
   /* This wrapper function will call drive motor fwd or bwd. This will support
    * negative and positie values as commands, and will manage the cases when
    * the value is not within the range. Negative values will mean the opposite
@@ -57,7 +57,7 @@ bool drive_motor(motor motor_x, int16_t vel) {
 
 }
 
-bool drive_motor_fwd_bwd(motor motor_x, uint8_t value, bool direction) {
+bool drive_motor_fwd_bwd(motor *motor_x, uint8_t value, bool direction) {
   /* Returns true if the motors moves succesfully, or
      false if didn't receive 0xff. motor is 0 for motor 1
      and 1 for motor 2. 127 is for full speed, 64 is about half
@@ -70,27 +70,27 @@ bool drive_motor_fwd_bwd(motor motor_x, uint8_t value, bool direction) {
 
   unsigned char data[6]; // address, cmd, value, 2byte crc
 
-  data[0] = motor_x.address; //first to write is address
-  usart_send_blocking(motor_x.port.usart, data[0]); //send address
+  data[0] = motor_x->address; //first to write is address
+  usart_send_blocking(motor_x->port.usart, data[0]); //send address
 
-  if ((motor_x.code == 0) & (direction == 1)) {
+  if ((motor_x->code == 0) & (direction == 1)) {
     // move motor 1 forward
     data[1] = (unsigned char) DRIVE_FWD_1;
   }
-  if ((motor_x.code == 0) & (direction == 0)) {
+  if ((motor_x->code == 0) & (direction == 0)) {
     // move motor 1 backward
     data[1] = (unsigned char) DRIVE_BWD_1;
   }
-  if ((motor_x.code == 1) & (direction == 1)) {
+  if ((motor_x->code == 1) & (direction == 1)) {
     // move motor 2 forward
     data[1] = (unsigned char) DRIVE_FWD_2;
   }
-  if ((motor_x.code == 1) & (direction == 0)) {
+  if ((motor_x->code == 1) & (direction == 0)) {
     // move motor 2 backwards
     data[1] = (unsigned char) DRIVE_BWD_2;
   }
 
-  usart_send_blocking(motor_x.port.usart, data[1]); //send cmd
+  usart_send_blocking(motor_x->port.usart, data[1]); //send cmd
 
   if(value > 127){
     // invalid input value
@@ -99,16 +99,16 @@ bool drive_motor_fwd_bwd(motor motor_x, uint8_t value, bool direction) {
 
   data[2] = (unsigned char) value;
 
-  usart_send_blocking(motor_x.port.usart, data[2]); //send value
+  usart_send_blocking(motor_x->port.usart, data[2]); //send value
 
   uint16_t crc_chk = crc16(data, 3);
   data[3] = crc_chk >> 8; // high value byte
   data[4] = crc_chk; // low value byte
 
-  usart_send_blocking(motor_x.port.usart, data[3]); //send high byte crc
-  usart_send_blocking(motor_x.port.usart, data[4]); //send low byte crc
+  usart_send_blocking(motor_x->port.usart, data[3]); //send high byte crc
+  usart_send_blocking(motor_x->port.usart, data[4]); //send low byte crc
 
-  data[5] = usart_recv_blocking(motor_x.port.usart);
+  data[5] = usart_recv_blocking(motor_x->port.usart);
 
   if(data[5] == ((char)255)){
     return true; //ack code sent
@@ -119,7 +119,7 @@ bool drive_motor_fwd_bwd(motor motor_x, uint8_t value, bool direction) {
 
 }
 
-bool read_firmware(char *output, motor motor_x) {
+bool read_firmware(char *output, motor *motor_x) {
   /* Returns true if operation was succesful,
      False otherwise. Also if outcome is true
      the firmware version will be printed
@@ -127,23 +127,23 @@ bool read_firmware(char *output, motor motor_x) {
   */
 
   unsigned char data[50]; //two bytes for address and cmd, and up to 48 to response
-  data[0] = motor_x.address;
+  data[0] = motor_x->address;
   data[1] = (unsigned char) GET_FIRMWARE;
 
   //unsigned int a = 0;
-  usart_send_blocking(motor_x.port.usart, data[0]);
-  usart_send_blocking(motor_x.port.usart, data[1]);
+  usart_send_blocking(motor_x->port.usart, data[0]);
+  usart_send_blocking(motor_x->port.usart, data[1]);
 
   for(int i=2; i<51; i++) {// max response size is 48 bytes
-    data[i] = usart_recv_blocking(motor_x.port.usart);
+    data[i] = usart_recv_blocking(motor_x->port.usart);
 if (((uint8_t)(data[i-1]) == 10) & ((uint8_t)(data[i]) == 0)) {//if this is 10, 0
       break;
     }
   }// write all response to data[i]
 
   unsigned char crc_rcv[2]; // receive the crc
-  crc_rcv[0] = usart_recv_blocking(motor_x.port.usart);
-  crc_rcv[1] = usart_recv_blocking(motor_x.port.usart);
+  crc_rcv[0] = usart_recv_blocking(motor_x->port.usart);
+  crc_rcv[1] = usart_recv_blocking(motor_x->port.usart);
 
   int response_size = strlen(&data)+1;//size of the dat rcvd + \n
   uint16_t crc_chk = crc16(data, response_size); // calculate local checksum
@@ -158,7 +158,7 @@ if (((uint8_t)(data[i-1]) == 10) & ((uint8_t)(data[i]) == 0)) {//if this is 10, 
 
 }
 
-bool read_main_battery(float *voltage, motor motor_x) {
+bool read_main_battery(float *voltage, motor *motor_x) {
   /* Returns true if operation was succesful,
      False otherwise """.
      If the outcome is true, the battery
@@ -167,19 +167,19 @@ bool read_main_battery(float *voltage, motor motor_x) {
 
   unsigned char data[4]; // two bytes for address and cmd, two for value
 
-  data[0] = motor_x.address; //first to write is address
+  data[0] = motor_x->address; //first to write is address
   data[1] = (unsigned char) GET_MAIN_BATT; // second is cmd
 
-  usart_send_blocking(motor_x.port.usart, data[0]); // send first address and cmd
-  usart_send_blocking(motor_x.port.usart, data[1]);
+  usart_send_blocking(motor_x->port.usart, data[0]); // send first address and cmd
+  usart_send_blocking(motor_x->port.usart, data[1]);
 
   for(int i=2; i<4; i++) {
-    data[i] = usart_recv_blocking(motor_x.port.usart);
+    data[i] = usart_recv_blocking(motor_x->port.usart);
   } // first two bytes rcvd are the battery voltage
 
   unsigned char crc_rcv[2]; // received crc values from roboclaw
-  crc_rcv[0] = usart_recv_blocking(motor_x.port.usart);
-  crc_rcv[1] = usart_recv_blocking(motor_x.port.usart);
+  crc_rcv[0] = usart_recv_blocking(motor_x->port.usart);
+  crc_rcv[1] = usart_recv_blocking(motor_x->port.usart);
 
   uint16_t crc_chk = crc16(data, 4); // calculate local checksum
 
