@@ -12,7 +12,7 @@ void encoder_init(encoder *encoder_x){
   encoder_x->uif = 0;
 }
 
-bool encoder_update(encoder *encoder_x, uint64_t systick_counter, uint16_t current_timer_counter, bool uif){
+bool encoder_update(encoder *encoder_x, uint16_t current_timer_counter, bool uif){
   /* Input parameters:
    *encoder_x: the struct containing all information for this encoder
    *systick_counter: the counter for how many times systick has
@@ -21,12 +21,13 @@ bool encoder_update(encoder *encoder_x, uint64_t systick_counter, uint16_t curre
    * The function will return 1 is there was an update of pos, meaning that
    * the systick counter should be reset
    */
+  encoder_x->systick_counter++;
 
   encoder_x->current_pos = current_timer_counter;
   //fprintf(stdout, "\n%d\n", current_timer_counter);
   return 1;
 
-  if (systick_counter > 5000) {
+  if (encoder_x->systick_counter > 5000) {
     encoder_x->current_vel = 0.0;
   }
 
@@ -38,10 +39,11 @@ bool encoder_update(encoder *encoder_x, uint64_t systick_counter, uint16_t curre
 
   }
 
-  encoder_x->current_vel = (float) (encoder_x->past_pos - encoder_x->current_pos)/( ((float) systick_counter) * TICKS_TIME);
+  encoder_x->current_vel = (float) (encoder_x->past_pos - encoder_x->current_pos)/( ((float) encoder_x->systick_counter) * TICKS_TIME);
 
   encoder_x->past_vel = encoder_x->current_vel;
   encoder_x->past_pos = encoder_x->current_pos;
+  encoder_x->systick_counter=0;
   return 1;
 
 }

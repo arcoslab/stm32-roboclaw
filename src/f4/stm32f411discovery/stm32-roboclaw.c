@@ -40,20 +40,8 @@
 #include "encoder.h"
 #include "motor.h"
 
-//static usart_port roboclaw_port;
-//static encoder motorfl_encoder;
-//static timer motorfl_timer;
 static motor motorfl; // static is necesary to mantain this values
 static motor motorfr;
-
-volatile uint64_t counter=0;
-volatile uint64_t current_pos;
-volatile uint64_t past_pos;
-volatile bool uif;
-volatile float past_vel;
-volatile float current_vel;
-
-volatile bool reset = false;
 
 void leds_init(void) {
   rcc_periph_clock_enable(RCC_GPIOE);
@@ -76,38 +64,8 @@ void sys_tick_handler(void) {
    * vel values will be 166 ms
    */
 
-  counter++; // this is counting how many systick handlers are called
-  //current_pos = timer_get_counter(TIM3);
+  encoder_update(&motorfl.encoder, timer_get_counter(motorfl.timer.peripheral), timer_get_flag(motorfl.timer.peripheral, TIM_SR_UIF));
 
-  current_pos = timer_get_counter(TIM3);
-  reset = encoder_update(&motorfl.encoder, counter, timer_get_counter(motorfl.timer.peripheral), timer_get_flag(motorfl.timer.peripheral, TIM_SR_UIF));
-
-  if (reset == 1) {
-    counter = 0;
-    reset = 0;
-  }
-
-  //if (counter > 5000) {
-    // when more than 50ms has passed
-  //  current_vel = 0;
-  //}
-
-  //if (past_pos == current_pos) {
-  //  return;
-  //}
-
-  //uif = timer_get_flag(TIM3, TIM_SR_UIF);
-  //if(uif == 1){
-
-  //}
-
-  //current_vel = (float) (past_pos - current_pos)/(((float) counter) * TICKS_TIME);
-
-  //past_vel = current_vel;
-  //past_pos = current_pos;
-  //counter = 0;
-
-  //uif = timer_get_flag(TIM3, TIM_SR_UIF); // get the update flag from the counter
 
 }
 
@@ -160,13 +118,13 @@ void system_init(void) {
   rcc_clock_setup_hse_3v3(&rcc_hse_8mhz_3v3[RCC_CLOCK_3V3_120MHZ]);
 
   usart_config(); // this config functions can be used with other ports and functions
-  //encoder_config();
+  encoder_config();
   motors_config();
-  //timers_config();;
+  timers_config();;
 
   leds_init();
   cdcacm_init();
-  //systick_init();
+  systick_init();
 }
 
 int main(void)

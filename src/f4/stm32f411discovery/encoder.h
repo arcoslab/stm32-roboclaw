@@ -19,6 +19,6 @@ typedef struct encoder {
 } encoder;
 
 void encoder_init(encoder *encoder_x);
-bool encoder_update(encoder *encoder_x, uint64_t systick_counter, uint16_t current_timer_counter, bool uif);
+bool encoder_update(encoder *encoder_x, uint16_t current_timer_counter, bool uif);
 
 #endif
