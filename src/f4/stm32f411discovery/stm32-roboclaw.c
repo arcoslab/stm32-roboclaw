@@ -65,6 +65,7 @@ void sys_tick_handler(void) {
    */
 
   encoder_update(&motorfl.encoder, timer_get_counter(motorfl.timer.peripheral), timer_get_flag(motorfl.timer.peripheral, TIM_SR_UIF));
+  encoder_update(&motorfr.encoder, timer_get_counter(motorfr.timer.peripheral), timer_get_flag(motorfr.timer.peripheral, TIM_SR_UIF));
 
 
 }
@@ -103,14 +104,12 @@ void timers_config(void) {
 void motors_config(void) {
   motorfl.address = 128;
   motorfl.code = 0;
-  //motorfl.port = roboclaw_port; // add the usart port here
-  //motorfl.encoder_timer = &motorfl.timer;
-  //motorfl.encoder = motorfl_encoder;
   motorfr.address = 128;
+
   motorfr.code = 1;
   motorfr.timer = motorfl.timer;
   motorfr.port = motorfl.port;
-  //motorfr.port = roboclaw_port;
+  encoder_init(&motorfr.encoder);
 }
 
 void system_init(void) {
@@ -119,8 +118,8 @@ void system_init(void) {
 
   usart_config(); // this config functions can be used with other ports and functions
   encoder_config();
-  motors_config();
   timers_config();;
+  motors_config();
 
   leds_init();
   cdcacm_init();
@@ -153,7 +152,7 @@ int main(void)
     //fprintf(stdout, "Pos: %d | Vel: %f | Accel: %f | Counter: %u \n", current_pos, current_vel, current_accel, counter);
     //fprintf(stdout, "Past Pos: %ld | Current Pos: %ld | TICKS TIME: %f | Counter: %ld | Current Vel: %f \n", (long)past_pos, (long)current_pos, TICKS_TIME, (long)counter, current_vel);
     //fprintf(stdout, "test\n");
-    fprintf(stdout, "POS: %lld | VALUE: %d | MOTRO: %d \n", motorfl.encoder.current_pos, value, motorfl.code);
+    fprintf(stdout, "POS 1: %lld | POS 2: %lld | VALUE: %d | MOTRO: %d \n", motorfl.encoder.current_pos, motorfr.encoder.current_pos, value, motorfl.code);
 
     if ((poll(stdin) > 0)) {
       i=0;
