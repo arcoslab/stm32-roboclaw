@@ -22,24 +22,43 @@ bool encoder_update(motor *motor_x){
 
   motor_x->encoder.systick_counter++;
 
-  motor_x->encoder.current_pos = timer_get_counter(motor_x->timer.peripheral);
+  motor_x->encoder.current_timer_counter = timer_get_counter(motor_x->timer.peripheral);
 
   if (motor_x->encoder.systick_counter > motor_x->encoder.autoreload) {
     motor_x->encoder.current_vel = 0.0;
   }
 
-  if (motor_x->encoder.past_pos == motor_x->encoder.current_pos) {
+  if (motor_x->encoder.past_timer_counter == motor_x->encoder.current_timer_counter) {
     return 0;
   }
 
   if (timer_get_flag(motor_x->timer.peripheral, TIM_SR_UIF) == 1) {
-
+    if (motor_x->encoder.past_timer_counter >= ( (float) motor_x->timer.period / 2.0) ) {
+      motor_x->encoder.current_pos += 1;
+    }
+    else {
+      motor_x->encoder.current_pos -= 1;
+    }
+    timer_clear_flag(motor_x->timer.peripheral, TIM_SR_UIF);
   }
 
-  motor_x->encoder.current_vel = (float) (motor_x->encoder.past_pos - motor_x->encoder.current_pos)/( ((float) motor_x->encoder.systick_counter) * TICKS_TIME);
+  else {
+    // no flag was raised
+    if (motor_x->encoder.current_timer_counter > motor_x->encoder.past_timer_counter) {
+      motor_x->encoder.current_pos += motor_x->encoder.current_timer_counter - motor_x->encoder.past_timer_counter;
+    }
+    else {
+      motor_x->encoder.current_pos -= motor_x->encoder.past_timer_counter - motor_x->encoder.current_timer_counter;
+    }
+  }
+
+  motor_x->encoder.current_vel = (float) (motor_x->encoder.current_pos - motor_x->encoder.past_pos)/( ((float) motor_x->encoder.systick_counter) * TICKS_TIME);
+
+  motor_x->encoder.current_accel = motor_x->current_vel - motor_x->past_vel;
 
   motor_x->encoder.past_vel = motor_x->encoder.current_vel;
   motor_x->encoder.past_pos = motor_x->encoder.current_pos;
+  motor_x->encoder.past_timer_counter = motor_x->encoder.current_timer_counter;
   motor_x->encoder.systick_counter=0;
   return 1;
 
