@@ -22,16 +22,7 @@
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/usart.h>
-
-typedef struct usart_port{
-  uint32_t usart;
-  uint32_t baudrate;
-  uint32_t gpio_port;
-  uint16_t gpio_pin;
-  uint8_t gpio_af;
-  enum rcc_periph_clken clken;
-  enum rcc_periph_clken clken_usart;
-} usart_port;
+#include "motor.h"
 
 void usart_init(usart_port usart_port_x);
 
