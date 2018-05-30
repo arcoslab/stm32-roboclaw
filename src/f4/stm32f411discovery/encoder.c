@@ -15,11 +15,9 @@ void encoder_init(encoder *encoder_x){
 bool encoder_update(encoder *encoder_x, uint16_t current_timer_counter, bool uif){
   /* Input parameters:
    *encoder_x: the struct containing all information for this encoder
-   *systick_counter: the counter for how many times systick has
-   *current_timer_counter: the current interal register counter of the timer
+   *current_timer_counter: the current internal register counter of the timer
    *uif: flag of update, raised only is there's an autoreload in the register of the timer
-   * The function will return 1 is there was an update of pos, meaning that
-   * the systick counter should be reset
+   * The function will return 1 is there was an update of pos.
    */
   encoder_x->systick_counter++;
 
