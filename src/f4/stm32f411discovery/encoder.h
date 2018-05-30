@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdio.h>
+#include "systick.h"
 
 typedef struct encoder {
   volatile uint64_t systick_counter;
@@ -16,7 +18,7 @@ typedef struct encoder {
   volatile bool uif;
 } encoder;
 
-void encoder_init(encoder encoder_x);
-bool encoder_update(encoder encoder_x, uint64_t systick_counter, uint16_t current_timer_counter, bool uif);
+void encoder_init(encoder *encoder_x);
+bool encoder_update(encoder *encoder_x, uint64_t systick_counter, uint16_t current_timer_counter, bool uif);
 
 #endif
