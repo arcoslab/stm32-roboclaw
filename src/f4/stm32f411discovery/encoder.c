@@ -53,13 +53,12 @@ bool encoder_update(motor *motor_x){
   }
 
   motor_x->encoder.current_vel = (float) (motor_x->encoder.current_pos - motor_x->encoder.past_pos)/( ((float) motor_x->encoder.systick_counter) * TICKS_TIME);
+  filter_push(&motor_x->encoder.filter, motor_x->encoder.current_vel);
+  motor_x->encoder.avg_vel = filter_average(&motor_x->encoder.filter);
 
-  motor_x->encoder.current_accel = motor_x->current_vel - motor_x->past_vel;
-
-  motor_x->encoder.past_vel = motor_x->encoder.current_vel;
   motor_x->encoder.past_pos = motor_x->encoder.current_pos;
+  motor_x->encoder.past_vel = motor_x->encoder.current_vel;
   motor_x->encoder.past_timer_counter = motor_x->encoder.current_timer_counter;
   motor_x->encoder.systick_counter=0;
   return 1;
-
 }
