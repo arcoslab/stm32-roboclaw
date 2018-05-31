@@ -6,16 +6,24 @@
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/timer.h>
 
+typedef struct filter {
+  float *array;
+  uint64_t insert_pos;
+  uint64_t max_size;
+} filter;
+
 typedef struct encoder {
   volatile uint64_t systick_counter;
   volatile uint32_t past_timer_counter;
   volatile uint32_t current_timer_counter;
   volatile int64_t past_pos;
   volatile int64_t current_pos;
-  volatile int64_t past_vel;
+  volatile float past_vel;
+  volatile float avg_vel;
   volatile float current_vel;
   volatile float current_accel;
   volatile bool uif;
+  filter filter;
   uint64_t autoreload;
 } encoder;
 
@@ -44,6 +52,16 @@ typedef struct usart_port{
   enum rcc_periph_clken clken_usart;
 } usart_port;
 
+typedef struct pid {
+  uint64_t kp;
+  uint64_t ki;
+  uint64_t kd;
+  float reference;
+  float past_error;
+  float error_sum;
+  float error_sum_limit;
+} pid;
+
 typedef struct motor {
   /* Virtual make motors appears as different
    * and the contents inside this struct will manage
@@ -51,11 +69,12 @@ typedef struct motor {
   */
   uint8_t address; // address to corresponding roboclaw in that port
   bool code; // each roboclaw has two motors. Choose between them
-  uint8_t clicks_per_rev; // amount of encoder events for one complete output shaft revolution
-  uint8_t wheel_radius; // wheel radius to calculate circunference
+  uint64_t clicks_per_rev; // amount of encoder events for one complete output shaft revolution
+  float wheel_radius; // wheel radius to calculate circunference
   encoder encoder; // encoder related to this motor
   usart_port port; // usart port where the roboclaw for this motor is
   timer timer; // timer in stm for the encoder
+  pid pid; // variables for pid controller
 } motor;
 
 bool cmd_vel(motor *motor_x);
