@@ -7,13 +7,13 @@ void systick_init(void) {
    * Program control and status reg: STK_CTRL
    * Control reg STK_CTRL contains countflag,
    * Clksource, tick int and enable
-   * Reload value, should be N-1, because systick 
+   * Reload value, should be N-1, because systick
    * lasts one clock cycle in logic
    * EG you want subroutine to run each 100,000 cycles
    * then you choose Reload value to 99,999
    */
-  systick_set_reload(SYS_TICK_AUTORELOAD); // clock rate is 84Mhz. repeated each 100us
-  systick_set_clocksource(STK_CSR_CLKSOURCE_AHB); 
+  systick_set_reload(SYS_TICK_AUTORELOAD); // clock rate is 1200Mhz. repeated each 100us
+  systick_set_clocksource(STK_CSR_CLKSOURCE_AHB);
   systick_counter_enable();
   systick_interrupt_enable();
 }

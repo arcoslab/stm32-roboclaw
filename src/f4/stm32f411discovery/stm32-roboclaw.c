@@ -86,7 +86,7 @@ void usart_config(void) {
 
 void encoder_config(void) {
   motorfl.encoder.autoreload = 10000;
-  motorfl.encoder.filter.max_size = 10;
+  motorfl.encoder.filter.max_size = 50;
   filter_init(&motorfl.encoder.filter);
   encoder_init(&motorfl.encoder);
 }
@@ -178,7 +178,7 @@ int main(void)
     // fprintf(stdout, "test\n");
     //fprintf(stdout, "POS 1: %lld | POS 2: %lld | VALUE: %d | MOTRO: %d \n", motorfl.encoder.current_pos, motorfr.encoder.current_pos, value, motorfl.code);
     //fprintf(stdout, "Action: %ld | Avg Vel: %f | Ref: %f | Kp: %f \n", motorfl.pid.current_action, motorfl.encoder.avg_vel/(float) motorfl.clicks_per_rev, motorfl.pid.reference, motorfl.pid.kp) ;
-    fprintf(stdout, "Current Vel: %f | Avg Vel: %f | Pos: %lld | Counter: %ld\n", motorfl.encoder.current_vel/(float)motorfl.clicks_per_rev, motorfl.encoder.avg_vel/(float)motorfl.clicks_per_rev, motorfl.encoder.current_pos, motorfl.encoder.used_timer_counter);
+    fprintf(stdout, "Current Vel: %f | Avg Vel: %f | Pos: %lld | Counter: %ld\n", motorfl.encoder.current_vel, motorfl.encoder.avg_ticks, motorfl.encoder.current_pos, motorfl.encoder.used_timer_counter);
 
     if ((poll(stdin) > 0)) {
       i=0;
