@@ -26,6 +26,7 @@ bool encoder_update(motor *motor_x){
 
   if (motor_x->encoder.systick_counter > motor_x->encoder.autoreload) {
     motor_x->encoder.current_vel = 0.0;
+    motor_x->encoder.avg_vel = 0.0;
   }
 
   if (motor_x->encoder.past_timer_counter == motor_x->encoder.current_timer_counter) {
@@ -52,13 +53,22 @@ bool encoder_update(motor *motor_x){
     }
   }
 
+  // current vel
   motor_x->encoder.current_vel = (float) (motor_x->encoder.current_pos - motor_x->encoder.past_pos)/( ((float) motor_x->encoder.systick_counter) * TICKS_TIME);
+
+  // avg vel based on filter size
   filter_push(&motor_x->encoder.filter, motor_x->encoder.current_vel);
   motor_x->encoder.avg_vel = filter_average(&motor_x->encoder.filter);
 
+  // accel
+  motor_x->encoder.current_accel = motor_x->encoder.current_vel - motor_x->encoder.past_vel;
+
+  // update past values
   motor_x->encoder.past_pos = motor_x->encoder.current_pos;
   motor_x->encoder.past_vel = motor_x->encoder.current_vel;
   motor_x->encoder.past_timer_counter = motor_x->encoder.current_timer_counter;
+
+  motor_x->encoder.used_timer_counter = motor_x->encoder.systick_counter;
   motor_x->encoder.systick_counter=0;
   return 1;
 }
