@@ -39,6 +39,7 @@
 #include "systick.h"
 #include "encoder.h"
 #include "motor.h"
+#include "filter.h"
 
 static motor motorfl; // static is necesary to mantain this values
 static motor motorfr;
@@ -65,6 +66,7 @@ void sys_tick_handler(void) {
    */
 
   encoder_update(&motorfl);
+  cmd_vel(&motorfl);
   //encoder_update(&motorfl.encoder, timer_get_counter(motorfl.timer.peripheral), timer_get_flag(motorfl.timer.peripheral, TIM_SR_UIF));
   //encoder_update(&motorfr.encoder, timer_get_counter(motorfr.timer.peripheral), timer_get_flag(motorfr.timer.peripheral, TIM_SR_UIF));
 
@@ -84,6 +86,8 @@ void usart_config(void) {
 
 void encoder_config(void) {
   motorfl.encoder.autoreload = 5000;
+  motorfl.encoder.filter.max_size = 4.0;
+  filter_init(&motorfl.encoder.filter);
   encoder_init(&motorfl.encoder);
 }
 
@@ -101,6 +105,16 @@ void timers_config(void) {
   motorfl.timer.in2 = TIM_IC_IN_TI2;
   motorfl.timer.mode = 0x3;
   tim_init(motorfl.timer);
+}
+
+void pid_config(void) {
+  motorfl.pid.kp = 1;
+  motorfl.pid.ki = 0;
+  motorfl.pid.kd = 0;
+  motorfl.pid.reference = 0.1;
+  motorfl.pid.past_error = 0;
+  motorfl.pid.error_sum = 0;
+  motorfl.pid.error_sum_limit = 0;
 }
 
 void motors_config(void) {
@@ -122,7 +136,8 @@ void system_init(void) {
 
   usart_config(); // this config functions can be used with other ports and functions
   encoder_config();
-  timers_config();;
+  timers_config();
+  pid_config();
   motors_config();
 
   leds_init();
@@ -136,6 +151,7 @@ int main(void)
 
   int i;
   int c=0;
+  float reference = 0.0;
   int value = 0;
   bool dir = 0;
 
@@ -154,9 +170,11 @@ int main(void)
      *be PA2 and PA3 pins.*/
 
     //fprintf(stdout, "Pos: %d | Vel: %f | Accel: %f | Counter: %u \n", current_pos, current_vel, current_accel, counter);
-    fprintf(stdout, "Past Pos: %lld | Past timer Pos: %ld | TICKS TIME: %f | Counter: %lld | Current Vel: %f \n", motorfl.encoder.past_pos, motorfl.encoder.current_timer_counter, TICKS_TIME, motorfl.encoder.systick_counter, motorfl.encoder.current_vel);
+    //fprintf(stdout, "Past Pos: %lld | Past timer Pos: %ld | TICKS TIME: %f | Counter: %lld | Current Vel: %f \n", motorfl.encoder.past_pos, motorfl.encoder.current_timer_counter, TICKS_TIME, motorfl.encoder.systick_counter, motorfl.encoder.current_vel);
     // fprintf(stdout, "test\n");
     //fprintf(stdout, "POS 1: %lld | POS 2: %lld | VALUE: %d | MOTRO: %d \n", motorfl.encoder.current_pos, motorfr.encoder.current_pos, value, motorfl.code);
+    fprintf(stdout, "Current Vel: %f | Kp: %lld | Avg Vel: %f \n", motorfl.encoder.current_vel, motorfl.pid.kp, motorfl.encoder.avg_vel) ;
+
 
     if ((poll(stdin) > 0)) {
       i=0;
@@ -179,6 +197,11 @@ int main(void)
         success = read_main_battery(&voltage, &motorfl);
         if (success) {
           fprintf(stdout, " %f\n", voltage);
+        }
+        if (c == 122) {
+          //success = false;
+          reference += 0.01;
+          motorfl.pid.reference = reference;
         }
         if (c == 49){
           success = false;
