@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <math.h>
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/timer.h>
 
@@ -16,6 +17,7 @@ typedef struct encoder {
   volatile uint64_t systick_counter;
   volatile uint32_t past_timer_counter;
   volatile uint32_t current_timer_counter;
+  volatile uint32_t used_timer_counter;
   volatile int64_t past_pos;
   volatile int64_t current_pos;
   volatile float past_vel;
@@ -53,13 +55,17 @@ typedef struct usart_port{
 } usart_port;
 
 typedef struct pid {
-  uint64_t kp;
-  uint64_t ki;
-  uint64_t kd;
+  float kp;
+  float ki;
+  float kd;
   float reference;
+  float current_error;
   float past_error;
   float error_sum;
   float error_sum_limit;
+  int32_t current_action;
+  int32_t past_action;
+  int32_t action_limit;
 } pid;
 
 typedef struct motor {
