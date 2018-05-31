@@ -26,7 +26,6 @@ bool encoder_update(motor *motor_x){
 
   if (motor_x->encoder.systick_counter > motor_x->encoder.autoreload) {
     motor_x->encoder.current_vel = 0.0;
-    motor_x->encoder.avg_vel = 0.0;
   }
 
   if (motor_x->encoder.past_timer_counter == motor_x->encoder.current_timer_counter) {
@@ -53,14 +52,16 @@ bool encoder_update(motor *motor_x){
     }
   }
 
-  // current vel
-  motor_x->encoder.current_vel = (float) (motor_x->encoder.current_pos - motor_x->encoder.past_pos)/( ((float) motor_x->encoder.systick_counter) * TICKS_TIME);
+  // use filter for times, not for vel. With vel the error is increased.
+  filter_push(&motor_x->encoder.filter, motor_x->encoder.systick_counter);
+  motor_x->encoder.avg_ticks = filter_average(&motor_x->encoder.filter);
 
-  // avg vel based on filter size
-  filter_push(&motor_x->encoder.filter, motor_x->encoder.current_vel);
-  motor_x->encoder.avg_vel = filter_average(&motor_x->encoder.filter);
+  // current vel - no need to do the substract because it's always 1.
+  motor_x->encoder.current_vel = 1.0 / (motor_x->encoder.avg_ticks * TICKS_TIME);
 
-  // accel
+  // current vel - old vel
+  // motor_x->encoder.current_vel = (float) (motor_x->encoder.current_pos - motor_x->encoder.past_pos)/( ((float) motor_x->encoder.systick_counter) * TICKS_TIME);
+
   motor_x->encoder.current_accel = motor_x->encoder.current_vel - motor_x->encoder.past_vel;
 
   // update past values

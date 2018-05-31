@@ -15,13 +15,13 @@ typedef struct filter {
 
 typedef struct encoder {
   volatile uint64_t systick_counter;
+  volatile float avg_ticks;
   volatile uint32_t past_timer_counter;
   volatile uint32_t current_timer_counter;
   volatile uint32_t used_timer_counter;
   volatile int64_t past_pos;
   volatile int64_t current_pos;
   volatile float past_vel;
-  volatile float avg_vel;
   volatile float current_vel;
   volatile float current_accel;
   volatile bool uif;
