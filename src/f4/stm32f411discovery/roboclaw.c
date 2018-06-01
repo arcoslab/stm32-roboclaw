@@ -35,6 +35,27 @@ uint16_t crc16(unsigned char *packet, int nBytes) {
   return crc;
 }
 
+bool usart_send_blocking_wtimeout(uint32_t usart, uint16_t *data, uint32_t timeout) {
+  for(int i=0; i<timeout; i++){
+    if((USART_SR(usart) & USART_SR_TXE) == 0) {
+    usart_send(usart, *data);
+    return true;
+    }
+  }
+  return false;
+}
+
+bool usart_recv_blocking_wtimeout(uint32_t usart, uint16_t *data, uint32_t timeout) {
+  for(int i=0; i<timeout; i++){
+    if((USART_SR(usart) & USART_SR_RXNE) == 0) {
+    *data = usart_recv(usart);
+    return true;
+    }
+  }
+  return false;
+}
+
+
 bool drive_motor(motor *motor_x, int16_t vel) {
   /* This wrapper function will call drive motor fwd or bwd. This will support
    * negative and positie values as commands, and will manage the cases when
@@ -64,14 +85,16 @@ bool drive_motor_fwd_bwd(motor *motor_x, uint8_t value, bool direction) {
      speed, and 0 is full stop. If direction is 0 then it will move
      backwards, if direction is 1 it will move forward.
   */
-  //bool motor_code = motor_x.code;
-  //uint8_t address = motor_x.address;
-  //uint32_t usart = motor_x.port.usart;
+  bool done = false;
 
   unsigned char data[6]; // address, cmd, value, 2byte crc
 
   data[0] = motor_x->address; //first to write is address
-  usart_send_blocking(motor_x->port.usart, data[0]); //send address
+  done = usart_send_blocking_wtimeout(motor_x->port.usart, &data[0]); //send address
+
+  if (!done) {
+    return false;
+  }
 
   if ((motor_x->code == 0) & (direction == 1)) {
     // move motor 1 forward
@@ -90,7 +113,11 @@ bool drive_motor_fwd_bwd(motor *motor_x, uint8_t value, bool direction) {
     data[1] = (unsigned char) DRIVE_BWD_2;
   }
 
-  usart_send_blocking(motor_x->port.usart, data[1]); //send cmd
+  done = usart_send_blocking_wtimeout(motor_x->port.usart, &data[1]); //send cmd
+
+  if (!done) {
+    return false;
+  }
 
   if(value > 127){
     // invalid input value
@@ -99,16 +126,32 @@ bool drive_motor_fwd_bwd(motor *motor_x, uint8_t value, bool direction) {
 
   data[2] = (unsigned char) value;
 
-  usart_send_blocking(motor_x->port.usart, data[2]); //send value
+  done = usart_send_blocking_wtimeout(motor_x->port.usart, &data[2]); //send value
+
+  if (!done) {
+    return false;
+  }
 
   uint16_t crc_chk = crc16(data, 3);
   data[3] = crc_chk >> 8; // high value byte
   data[4] = crc_chk; // low value byte
 
-  usart_send_blocking(motor_x->port.usart, data[3]); //send high byte crc
-  usart_send_blocking(motor_x->port.usart, data[4]); //send low byte crc
+  done = usart_send_blocking_wtimeout(motor_x->port.usart, &data[3]); //send high byte crc
+  if (!done) {
+    return false;
+  }
 
-  data[5] = usart_recv_blocking(motor_x->port.usart);
+  done = usart_send_blocking_wtimeout(motor_x->port.usart, &data[4]); //send low byte crc
+
+  if (!done) {
+    return false;
+  }
+
+  done = usart_recv_blocking_wtimeout(motor_x->port.usart, &data[5]);
+  if (!done) {
+    return false;
+  }
+
 
   if(data[5] == ((char)255)){
     return true; //ack code sent
