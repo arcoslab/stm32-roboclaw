@@ -18,6 +18,8 @@
 #define GET_MAIN_BATT 24
 
 uint16_t crc16(unsigned char *packet, int nBytes);
+bool usart_recv_blocking_wtimeout(uint32_t usart, uint16_t *data, uint32_t timeout);
+bool usart_send_blocking_wtimeout(uint32_t usart, uint16_t *data, uint32_t timeout);
 bool read_firmware(char* output, motor *motor_x);
 bool read_main_battery(float *voltage, motor *motor_x);
 bool drive_motor(motor *motor_x, int16_t vel);
