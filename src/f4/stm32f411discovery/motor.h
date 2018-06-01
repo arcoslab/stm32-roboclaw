@@ -3,9 +3,11 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdlib.h>
 #include <math.h>
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/timer.h>
+#include "systick.h"
 
 typedef struct filter {
   float *array;
@@ -23,6 +25,7 @@ typedef struct encoder {
   volatile int64_t current_pos;
   volatile float past_vel;
   volatile float current_vel;
+
   volatile float current_accel;
   volatile bool uif;
   filter filter;
@@ -65,7 +68,10 @@ typedef struct pid {
   float error_sum_limit;
   int32_t current_action;
   int32_t past_action;
-  int32_t action_limit;
+  float minimal_change; // minimal change to perform a change in the action
+  float action_limit;
+  float response_time; // to avoid too many changes in a row
+  float wait_time; //
 } pid;
 
 typedef struct motor {
