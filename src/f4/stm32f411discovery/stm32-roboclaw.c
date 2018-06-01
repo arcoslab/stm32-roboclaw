@@ -66,7 +66,7 @@ void sys_tick_handler(void) {
    */
 
   encoder_update(&motorfl);
-  //cmd_vel(&motorfl);
+  cmd_vel(&motorfl);
   //encoder_update(&motorfl.encoder, timer_get_counter(motorfl.timer.peripheral), timer_get_flag(motorfl.timer.peripheral, TIM_SR_UIF));
   //encoder_update(&motorfr.encoder, timer_get_counter(motorfr.timer.peripheral), timer_get_flag(motorfr.timer.peripheral, TIM_SR_UIF));
 
@@ -108,17 +108,19 @@ void timers_config(void) {
 }
 
 void pid_config(void) {
-  motorfl.pid.kp = 1;
+  motorfl.pid.kp = 2.0;
   motorfl.pid.ki = 0;
   motorfl.pid.kd = 0;
-  motorfl.pid.reference = 0.1;
+  motorfl.pid.reference = 0.2;
   motorfl.pid.current_error = 0;
   motorfl.pid.past_error = 0;
   motorfl.pid.error_sum = 0;
-  motorfl.pid.error_sum_limit = 0;
+  motorfl.pid.error_sum_limit = 10.0;
   motorfl.pid.current_action = 0;
   motorfl.pid.past_action = 0;
   motorfl.pid.action_limit = 127;
+  motorfl.pid.wait_time = 0;
+  motorfl.pid.response_time = 0.001; // 10 ms
 }
 
 void motors_config(void) {
@@ -155,7 +157,6 @@ int main(void)
 
   int i;
   int c=0;
-  float reference = 0.0;
   int value = 0;
   bool dir = 0;
 
@@ -177,8 +178,8 @@ int main(void)
     //fprintf(stdout, "Past Pos: %lld | Past timer Pos: %ld | TICKS TIME: %f | Counter: %lld | Current Vel: %f \n", motorfl.encoder.past_pos, motorfl.encoder.current_timer_counter, TICKS_TIME, motorfl.encoder.systick_counter, motorfl.encoder.current_vel);
     // fprintf(stdout, "test\n");
     //fprintf(stdout, "POS 1: %lld | POS 2: %lld | VALUE: %d | MOTRO: %d \n", motorfl.encoder.current_pos, motorfr.encoder.current_pos, value, motorfl.code);
-    //fprintf(stdout, "Action: %ld | Avg Vel: %f | Ref: %f | Kp: %f \n", motorfl.pid.current_action, motorfl.encoder.avg_vel/(float) motorfl.clicks_per_rev, motorfl.pid.reference, motorfl.pid.kp) ;
-    fprintf(stdout, "Current Vel: %f | Avg Vel: %f | Pos: %lld | Counter: %ld\n", motorfl.encoder.current_vel, motorfl.encoder.avg_ticks, motorfl.encoder.current_pos, motorfl.encoder.used_timer_counter);
+    fprintf(stdout, "Act: %ld | AvgVel: %f | Ref: %f | Kp: %f | Ki: %f | E: %f | Esum: %f \n", motorfl.pid.current_action, motorfl.encoder.current_vel/(float) motorfl.clicks_per_rev, motorfl.pid.reference, motorfl.pid.kp, motorfl.pid.ki, motorfl.pid.current_error, motorfl.pid.error_sum) ;
+    //fprintf(stdout, "Current Vel: %f | Avg Vel: %f | Pos: %lld | Counter: %ld\n", motorfl.encoder.current_vel, motorfl.encoder.avg_ticks, motorfl.encoder.current_pos, motorfl.encoder.used_timer_counter);
 
     if ((poll(stdin) > 0)) {
       i=0;
@@ -193,7 +194,7 @@ int main(void)
         //bool success = false;
         bool success = read_firmware(&output, &motorfl);
         if (success) {
-          fprintf(stdout, "%s", &output);
+          //fprintf(stdout, "%s", &output);
         }// if success
         // read battery test
         float voltage;
@@ -204,19 +205,17 @@ int main(void)
         }
         if (c == 122) { // z will raise the reference
           //success = false;
-          reference += 0.01;
-          motorfl.pid.reference = reference;
+          motorfl.pid.reference += 0.01;
         }
         if (c == 120) { // x will lower the reference
-          reference -= 0.01;
-          motorfl.pid.reference = reference;
+          motorfl.pid.reference -= 0.01;
         }
         if (c == 110) { // n will increase kp by 0.1
-          motorfl.pid.kp += 2;
+          motorfl.pid.ki += 0.1;
         }
 
         if (c == 109) { // m will decrease kp by 0.1
-          motorfl.pid.kp -= 2;
+          motorfl.pid.ki -= 0.1;
         }
 
         if (c == 49){
