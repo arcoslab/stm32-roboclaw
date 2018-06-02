@@ -86,7 +86,7 @@ void usart_config(void) {
 
 void encoder_config(void) {
   motorfl.encoder.autoreload = 10000;
-  motorfl.encoder.filter.max_size = 50;
+  motorfl.encoder.filter.max_size = 70;
   filter_init(&motorfl.encoder.filter);
   encoder_init(&motorfl.encoder);
 }
@@ -108,7 +108,7 @@ void timers_config(void) {
 }
 
 void pid_config(void) {
-  motorfl.pid.kp = 0.8;
+  motorfl.pid.kp = 0.08;
   motorfl.pid.ki = 0;
   motorfl.pid.kd = 0;
   motorfl.pid.reference = 0.2;
