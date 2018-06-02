@@ -48,8 +48,8 @@ bool usart_send_blocking_wtimeout(uint32_t usart, unsigned char *data, uint32_t 
 bool usart_recv_blocking_wtimeout(uint32_t usart, unsigned char *data, uint32_t timeout) {
   for(uint32_t i=0; i<timeout; i++){
     if( (USART_SR(usart) & USART_SR_RXNE) != 0) {
-    *data = usart_recv(usart);
-    return true;
+      *data = usart_recv(usart);
+      return true;
     }
   }
   return false;
