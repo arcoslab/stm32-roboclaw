@@ -14,7 +14,7 @@ bool cmd_vel(motor *motor_x) {
     (motor_x->encoder.current_vel / (float) motor_x->clicks_per_rev);
 
   // command calculate action
-  motor_x->pid.current_action = lroundf(motor_x->pid.current_error * motor_x->pid.kp
+  motor_x->pid.current_action = (motor_x->pid.current_error * motor_x->pid.kp
                                         + motor_x->pid.error_sum * motor_x->pid.ki
                                         + (motor_x->pid.current_error -
                                            motor_x->pid.past_error) * motor_x->pid.kd
@@ -37,7 +37,9 @@ bool cmd_vel(motor *motor_x) {
 
   motor_x->pid.past_action = motor_x->pid.current_action;
 
-  drive_motor(motor_x, motor_x->pid.current_action);
+  if (!motor_x->pid.updating) {
+    drive_motor(motor_x, (uint16_t) lroundf(motor_x->pid.current_action));
+  }
 
   return 1;
 }

@@ -25,7 +25,6 @@ typedef struct encoder {
   volatile int64_t current_pos;
   volatile float past_vel;
   volatile float current_vel;
-
   volatile float current_accel;
   volatile bool uif;
   filter filter;
@@ -66,12 +65,12 @@ typedef struct pid {
   float past_error;
   float error_sum;
   float error_sum_limit;
-  int32_t current_action;
-  int32_t past_action;
-  float minimal_change; // minimal change to perform a change in the action
+  float current_action;
+  float past_action;
   float action_limit;
   float response_time; // to avoid too many changes in a row
   float wait_time; //
+  bool updating; // disable drive while updating value
 } pid;
 
 typedef struct motor {
