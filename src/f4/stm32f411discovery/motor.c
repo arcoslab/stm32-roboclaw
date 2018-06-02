@@ -20,11 +20,6 @@ bool cmd_vel(motor *motor_x) {
                                            motor_x->pid.past_error) * motor_x->pid.kd
                                         + motor_x->pid.past_action);
 
-  // don't command speed if nothing has changed.
-  if(motor_x->pid.current_action == motor_x->pid.past_action) {
-    return 0; // do nothing if the action hasn't changed
-  }
-
   // don't allow error sum too increase too much.
   if(abs(motor_x->pid.error_sum) > motor_x->pid.error_sum_limit) {
     motor_x->pid.error_sum = motor_x->pid.error_sum_limit;
@@ -32,13 +27,19 @@ bool cmd_vel(motor *motor_x) {
 
   // don't allow actions greater than action limit
   if(abs(motor_x->pid.current_action) > motor_x->pid.action_limit) {
-    return 0;
+    if(signbit(motor_x->pid.current_action)) {
+      // negative value
+      motor_x->pid.current_action = -127.0;
+    }
+    else {
+      motor_x->pid.current_action = 127.0;
+    }
   }
 
   motor_x->pid.past_action = motor_x->pid.current_action;
 
   if (!motor_x->pid.updating) {
-    drive_motor(motor_x, (uint16_t) lroundf(motor_x->pid.current_action));
+    drive_motor(motor_x, (int16_t) lroundf(motor_x->pid.current_action));
   }
 
   return 1;
