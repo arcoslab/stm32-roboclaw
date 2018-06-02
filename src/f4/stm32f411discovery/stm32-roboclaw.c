@@ -108,7 +108,7 @@ void timers_config(void) {
 }
 
 void pid_config(void) {
-  motorfl.pid.kp = 2.0;
+  motorfl.pid.kp = 0.8;
   motorfl.pid.ki = 0;
   motorfl.pid.kd = 0;
   motorfl.pid.reference = 0.2;
@@ -120,7 +120,7 @@ void pid_config(void) {
   motorfl.pid.past_action = 0;
   motorfl.pid.action_limit = 127;
   motorfl.pid.wait_time = 0;
-  motorfl.pid.response_time = 0.001; // 10 ms
+  motorfl.pid.response_time = 0.001; // 1 ms
 }
 
 void motors_config(void) {
@@ -178,10 +178,11 @@ int main(void)
     //fprintf(stdout, "Past Pos: %lld | Past timer Pos: %ld | TICKS TIME: %f | Counter: %lld | Current Vel: %f \n", motorfl.encoder.past_pos, motorfl.encoder.current_timer_counter, TICKS_TIME, motorfl.encoder.systick_counter, motorfl.encoder.current_vel);
     // fprintf(stdout, "test\n");
     //fprintf(stdout, "POS 1: %lld | POS 2: %lld | VALUE: %d | MOTRO: %d \n", motorfl.encoder.current_pos, motorfr.encoder.current_pos, value, motorfl.code);
-    fprintf(stdout, "Act: %ld | AvgVel: %f | Ref: %f | Kp: %f | Ki: %f | E: %f | Esum: %f \n", motorfl.pid.current_action, motorfl.encoder.current_vel/(float) motorfl.clicks_per_rev, motorfl.pid.reference, motorfl.pid.kp, motorfl.pid.ki, motorfl.pid.current_error, motorfl.pid.error_sum) ;
+    fprintf(stdout, "Act: %f | AvgVel: %f | Ref: %f | Kp: %f | Ki: %f | E: %f | Esum: %f \n", motorfl.pid.current_action, motorfl.encoder.current_vel/(float) motorfl.clicks_per_rev, motorfl.pid.reference, motorfl.pid.kp, motorfl.pid.ki, motorfl.pid.current_error, motorfl.pid.error_sum) ;
     //fprintf(stdout, "Current Vel: %f | Avg Vel: %f | Pos: %lld | Counter: %ld\n", motorfl.encoder.current_vel, motorfl.encoder.avg_ticks, motorfl.encoder.current_pos, motorfl.encoder.used_timer_counter);
 
     if ((poll(stdin) > 0)) {
+      motorfl.pid.updating = true;
       i=0;
       c=0;
       while (c!='\r') {
@@ -194,7 +195,7 @@ int main(void)
         //bool success = false;
         bool success = read_firmware(&output, &motorfl);
         if (success) {
-          //fprintf(stdout, "%s", &output);
+          fprintf(stdout, "%s", &output);
         }// if success
         // read battery test
         float voltage;
@@ -211,24 +212,24 @@ int main(void)
           motorfl.pid.reference -= 0.01;
         }
         if (c == 110) { // n will increase kp by 0.1
-          motorfl.pid.ki += 0.1;
+          motorfl.pid.kp += 0.1;
         }
 
         if (c == 109) { // m will decrease kp by 0.1
-          motorfl.pid.ki -= 0.1;
+          motorfl.pid.kp -= 0.1;
         }
 
         if (c == 49){
           success = false;
           value += 1;
           success = drive_motor(&motorfl, value);
-          success = drive_motor(&motorfr, value);
+          //success = drive_motor(&motorfr, value);
         }
         if (c == 50){
           success = false;
           value-=1;
           success = drive_motor(&motorfl, value);
-          success = drive_motor(&motorfr, value);
+          //success = drive_motor(&motorfr, value);
         }
 
         if (c == 112){//WARNING dont change direction while moving fast
@@ -257,6 +258,7 @@ int main(void)
         success = false;
 
       }
+    motorfl.pid.updating = false;
     }
   }
 
