@@ -64,12 +64,11 @@ typedef struct pid {
   float current_error;
   float past_error;
   float error_sum;
-  float error_sum_limit;
   float current_action;
   float past_action;
   float action_limit;
   float response_time; // to avoid too many changes in a row
-  float wait_time; //
+  float wait_time; // how much time to wait until calculation
   bool updating; // disable drive while updating value
 } pid;
 
