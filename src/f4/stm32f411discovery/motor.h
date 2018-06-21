@@ -32,10 +32,13 @@ typedef struct encoder {
 } encoder;
 
 typedef struct timer {
-  enum rcc_periph_clken clken;
+  enum rcc_periph_clken clken_ch1;
+  enum rcc_periph_clken clken_ch2;
   enum rcc_periph_clken clken_timer;
-  uint32_t gpio_port;
-  uint32_t gpio_pin;
+  uint32_t gpio_port_ch1;
+  uint32_t gpio_port_ch2;
+  uint32_t gpio_pin_ch1;
+  uint32_t gpio_pin_ch2;
   uint32_t period;
   uint32_t peripheral;
   uint8_t gpio_af;

@@ -10,9 +10,17 @@ void tim_init(timer timer_x) {
    *
    */
 
-  rcc_periph_clock_enable(timer_x.clken);
-  gpio_mode_setup(timer_x.gpio_port, GPIO_MODE_AF, GPIO_PUPD_NONE, timer_x.gpio_pin); // pin a6 & a7 to Alternate Function
-  gpio_set_af(timer_x.gpio_port, timer_x.gpio_af, timer_x.gpio_pin); // ref pag 47 @ ds10314 datasheet table 9 AF02 column
+  // enable clocks for each port
+  rcc_periph_clock_enable(timer_x.clken_ch1);
+  rcc_periph_clock_enable(timer_x.clken_ch2);
+
+  // enable each pin
+  gpio_mode_setup(timer_x.gpio_port_ch1, GPIO_MODE_AF, GPIO_PUPD_NONE, timer_x.gpio_pin_ch1); // pin a6 & a7 to Alternate Function
+  gpio_mode_setup(timer_x.gpio_port_ch2, GPIO_MODE_AF, GPIO_PUPD_NONE, timer_x.gpio_pin_ch2); // pin a6 & a7 to Alternate Function
+
+  // enable each af
+  gpio_set_af(timer_x.gpio_port_ch1, timer_x.gpio_af, timer_x.gpio_pin_ch1); // ref pag 47 @ ds10314 datasheet table 9 AF02 column
+  gpio_set_af(timer_x.gpio_port_ch2, timer_x.gpio_af, timer_x.gpio_pin_ch2); // ref pag 47 @ ds10314 datasheet table 9 AF02 column
 
   rcc_periph_clock_enable(timer_x.clken_timer);
   timer_set_period(timer_x.peripheral, timer_x.period); // set maximun period before auto reload

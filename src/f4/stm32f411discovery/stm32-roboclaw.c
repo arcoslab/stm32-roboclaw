@@ -101,10 +101,16 @@ void usart_config(void) {
 
   // pass the configuration for the right rear motor
   motorrr.port = motorrl.port;
-
 }
 
 void encoder_config(void) {
+  // front right motor encoder
+  motorfr.encoder.autoreload = 10000;
+  motorfr.encoder.filter.max_size = 70;
+  filter_init(&motorfr.encoder.filter);
+  encoder_init(&motorfr.encoder);
+
+  // rear left encoder init
   motorrl.encoder.autoreload = 10000;
   motorrl.encoder.filter.max_size = 70;
   filter_init(&motorrl.encoder.filter);
@@ -112,6 +118,26 @@ void encoder_config(void) {
 }
 
 void timers_config(void) {
+  // front right motor timer
+  motorfr.timer.clken_ch1 = RCC_GPIOD;
+  motorfr.timer.clken_ch2 = RCC_GPIOD;
+  motorfr.timer.clken_timer = RCC_TIM4;
+  motorfr.timer.gpio_port_ch1 = GPIOD;
+  motorfr.timer.gpio_port_ch2 = GPIOD;
+  motorfr.timer.gpio_pin_ch1 = GPIO12;
+  motorfr.timer.gpio_pin_ch2 = GPIO13;
+  motorfr.timer.period = 65535;
+  motorfr.timer.peripheral = TIM3;
+  motorfr.timer.gpio_af = GPIO_AF2;
+  motorfr.timer.ic1 = TIM_IC1;
+  motorfr.timer.in1 = TIM_IC_IN_TI1;
+  motorfr.timer.ic2 = TIM_IC2;
+  motorfr.timer.in2 = TIM_IC_IN_TI2;
+  motorfr.timer.mode = 0x3;
+  tim_init(motorfr.timer);
+
+
+
   motorrl.timer.clken = RCC_GPIOB;
   motorrl.timer.clken_timer = RCC_TIM3;
   motorrl.timer.gpio_port = GPIOB;
