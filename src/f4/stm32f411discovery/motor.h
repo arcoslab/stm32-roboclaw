@@ -88,6 +88,9 @@ typedef struct motor {
   usart_port *port; // usart port where the roboclaw for this motor is
   timer *timer; // timer in stm for the encoder
   pid *pid; // variables for pid controller
+  uint32_t peripheral; // save the timer to use
+  uint32_t period; // save the timer period
+  uint32_t usart; // save the usart port for roboclaw
 } motor;
 
 bool cmd_vel(motor *motor_x);
