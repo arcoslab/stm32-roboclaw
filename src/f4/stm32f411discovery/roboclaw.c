@@ -90,7 +90,7 @@ bool drive_motor_fwd_bwd(motor *motor_x, uint8_t value, bool direction) {
   unsigned char data[6]; // address, cmd, value, 2byte crc
 
   data[0] = motor_x->address; //first to write is address
-  done = usart_send_blocking_wtimeout(motor_x->port.usart, &data[0], TIMEOUT); //send address
+  done = usart_send_blocking_wtimeout(motor_x->port->usart, &data[0], TIMEOUT); //send address
 
   if (!done) {
     return false;
@@ -113,7 +113,7 @@ bool drive_motor_fwd_bwd(motor *motor_x, uint8_t value, bool direction) {
     data[1] = (unsigned char) DRIVE_BWD_2;
   }
 
-  done = usart_send_blocking_wtimeout(motor_x->port.usart, &data[1], TIMEOUT); //send cmd
+  done = usart_send_blocking_wtimeout(motor_x->port->usart, &data[1], TIMEOUT); //send cmd
 
   if (!done) {
     return false;
@@ -126,7 +126,7 @@ bool drive_motor_fwd_bwd(motor *motor_x, uint8_t value, bool direction) {
 
   data[2] = (unsigned char) value;
 
-  done = usart_send_blocking_wtimeout(motor_x->port.usart, &data[2], TIMEOUT); //send value
+  done = usart_send_blocking_wtimeout(motor_x->port->usart, &data[2], TIMEOUT); //send value
 
   if (!done) {
     return false;
@@ -136,18 +136,18 @@ bool drive_motor_fwd_bwd(motor *motor_x, uint8_t value, bool direction) {
   data[3] = crc_chk >> 8; // high value byte
   data[4] = crc_chk; // low value byte
 
-  done = usart_send_blocking_wtimeout(motor_x->port.usart, &data[3], TIMEOUT); //send high byte crc
+  done = usart_send_blocking_wtimeout(motor_x->port->usart, &data[3], TIMEOUT); //send high byte crc
   if (!done) {
     return false;
   }
 
-  done = usart_send_blocking_wtimeout(motor_x->port.usart, &data[4], TIMEOUT); //send low byte crc
+  done = usart_send_blocking_wtimeout(motor_x->port->usart, &data[4], TIMEOUT); //send low byte crc
 
   if (!done) {
     return false;
   }
 
-  done = usart_recv_blocking_wtimeout(motor_x->port.usart, &data[5], TIMEOUT);
+  done = usart_recv_blocking_wtimeout(motor_x->port->usart, &data[5], TIMEOUT);
   if (!done) {
     return false;
   }
@@ -176,19 +176,19 @@ bool read_firmware(char *output, motor *motor_x) {
   data[1] = (unsigned char) GET_FIRMWARE;
 
   //unsigned int a = 0;
-  done = usart_send_blocking_wtimeout(motor_x->port.usart, &data[0], TIMEOUT);
+  done = usart_send_blocking_wtimeout(motor_x->port->usart, &data[0], TIMEOUT);
   if (!done) {
     return false;
   }
 
-  done = usart_send_blocking_wtimeout(motor_x->port.usart, &data[1], TIMEOUT);
+  done = usart_send_blocking_wtimeout(motor_x->port->usart, &data[1], TIMEOUT);
   if (!done) {
     return false;
   }
 
 
   for(int i=2; i<51; i++) {// max response size is 48 bytes
-    done = usart_recv_blocking_wtimeout(motor_x->port.usart, &data[i], TIMEOUT);
+    done = usart_recv_blocking_wtimeout(motor_x->port->usart, &data[i], TIMEOUT);
     if (!done) {
       return false;
     }
@@ -198,9 +198,9 @@ if (((uint8_t)(data[i-1]) == 10) & ((uint8_t)(data[i]) == 0)) {//if this is 10, 
   }// write all response to data[i]
 
   unsigned char crc_rcv[2]; // receive the crc
-  done = usart_recv_blocking_wtimeout(motor_x->port.usart, &crc_rcv[0], TIMEOUT);
+  done = usart_recv_blocking_wtimeout(motor_x->port->usart, &crc_rcv[0], TIMEOUT);
 
-  done = usart_recv_blocking_wtimeout(motor_x->port.usart, &crc_rcv[1], TIMEOUT);
+  done = usart_recv_blocking_wtimeout(motor_x->port->usart, &crc_rcv[1], TIMEOUT);
 
   int response_size = strlen(&data)+1;//size of the dat rcvd + \n
   uint16_t crc_chk = crc16(data, response_size); // calculate local checksum
@@ -229,30 +229,30 @@ bool read_main_battery(float *voltage, motor *motor_x) {
   data[0] = motor_x->address; //first to write is address
   data[1] = (unsigned char) GET_MAIN_BATT; // second is cmd
 
-  done = usart_send_blocking_wtimeout(motor_x->port.usart, &data[0], TIMEOUT); // send first address and cmd
+  done = usart_send_blocking_wtimeout(motor_x->port->usart, &data[0], TIMEOUT); // send first address and cmd
   if (!done) {
     return false;
   }
 
-  done = usart_send_blocking_wtimeout(motor_x->port.usart, &data[1], TIMEOUT);
+  done = usart_send_blocking_wtimeout(motor_x->port->usart, &data[1], TIMEOUT);
   if (!done) {
     return false;
   }
 
   for(int i=2; i<4; i++) {
-    done = usart_recv_blocking_wtimeout(motor_x->port.usart, &data[i], TIMEOUT);
+    done = usart_recv_blocking_wtimeout(motor_x->port->usart, &data[i], TIMEOUT);
     if (!done) {
       return false;
     }
   } // first two bytes rcvd are the battery voltage
 
   unsigned char crc_rcv[2]; // received crc values from roboclaw
-  done = usart_recv_blocking_wtimeout(motor_x->port.usart, &crc_rcv[0], TIMEOUT);
+  done = usart_recv_blocking_wtimeout(motor_x->port->usart, &crc_rcv[0], TIMEOUT);
   if (!done) {
     return false;
   }
 
-  done = usart_recv_blocking_wtimeout(motor_x->port.usart, &crc_rcv[1], TIMEOUT);
+  done = usart_recv_blocking_wtimeout(motor_x->port->usart, &crc_rcv[1], TIMEOUT);
   if (!done) {
     return false;
   }

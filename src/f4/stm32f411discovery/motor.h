@@ -84,10 +84,10 @@ typedef struct motor {
   bool code; // each roboclaw has two motors. Choose between them
   uint64_t clicks_per_rev; // amount of encoder events for one complete output shaft revolution
   float wheel_radius; // wheel radius to calculate circunference
-  encoder encoder; // encoder related to this motor
-  usart_port port; // usart port where the roboclaw for this motor is
-  timer timer; // timer in stm for the encoder
-  pid pid; // variables for pid controller
+  encoder *encoder; // encoder related to this motor
+  usart_port *port; // usart port where the roboclaw for this motor is
+  timer *timer; // timer in stm for the encoder
+  pid *pid; // variables for pid controller
 } motor;
 
 bool cmd_vel(motor *motor_x);

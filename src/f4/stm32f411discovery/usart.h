@@ -24,6 +24,6 @@
 #include <libopencm3/stm32/usart.h>
 #include "motor.h"
 
-void usart_init(usart_port usart_port_x);
+void usart_init(usart_port *usart_port_x);
 
 #endif

@@ -6,6 +6,6 @@
 #include <libopencm3/stm32/gpio.h>
 #include "motor.h"
 
-void tim_init(timer timer_x);
+void tim_init(timer *timer_x);
 
 #endif
