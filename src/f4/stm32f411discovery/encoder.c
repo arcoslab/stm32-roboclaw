@@ -22,7 +22,7 @@ bool encoder_update(motor *motor_x){
 
   motor_x->encoder->systick_counter++;
 
-  motor_x->encoder->current_timer_counter = timer_get_counter(motor_x->timer->peripheral);
+  motor_x->encoder->current_timer_counter = timer_get_counter(motor_x->peripheral);
 
   if (motor_x->encoder->systick_counter > motor_x->encoder->autoreload) {
     motor_x->encoder->current_vel = 0.0;
@@ -32,14 +32,14 @@ bool encoder_update(motor *motor_x){
     return 0;
   }
 
-  if (timer_get_flag(motor_x->timer->peripheral, TIM_SR_UIF) == 1) {
-    if (motor_x->encoder->past_timer_counter >= ( (float) motor_x->timer->period / 2.0) ) {
+  if (timer_get_flag(motor_x->peripheral, TIM_SR_UIF) == 1) {
+    if (motor_x->encoder->past_timer_counter >= ( (float) motor_x->period / 2.0) ) {
       motor_x->encoder->current_pos += 1;
     }
     else {
       motor_x->encoder->current_pos -= 1;
     }
-    timer_clear_flag(motor_x->timer->peripheral, TIM_SR_UIF);
+    timer_clear_flag(motor_x->peripheral, TIM_SR_UIF);
   }
 
   else {
