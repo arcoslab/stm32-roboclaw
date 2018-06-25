@@ -68,8 +68,8 @@ void sys_tick_handler(void) {
    */
 
   // pid control for motorfr
-  encoder_update(motorfl);
-  //cmd_vel(motorfr);
+  encoder_update(motorrr);
+  cmd_vel(motorrr);
 
 
   // pid control for motorrl
@@ -93,23 +93,26 @@ void usart_config(void) {
   motorfr->port->clken_usart = RCC_USART6;
   usart_init(motorfr->port);
   motorfr->usart = motorfr->port->usart;
-  free(motorfr->port);
+  free(motorfr->port); // free memory
 
   // pass the configuration for the left front motor
   motorfl->usart = motorfr->usart;
 
   // configuration for usart 2, rear axel
-  //motorrl->port->usart = USART2;
-  //motorrl->port->baudrate = 115200;
-  //motorrl->port->gpio_port = GPIOA;
-  //motorrl->port->gpio_pin = GPIO2 | GPIO3;
-  //motorrl->port->gpio_af = GPIO_AF7;
-  //motorrl->port->clken = RCC_GPIOA;
-  //motorrl->port->clken_usart = RCC_USART2;
-  //usart_init(motorrl->port);
+  motorrr->port = malloc(sizeof(usart_port));
+  motorrr->port->usart = USART2;
+  motorrr->port->baudrate = 115200;
+  motorrr->port->gpio_port = GPIOA;
+  motorrr->port->gpio_pin = GPIO2 | GPIO3;
+  motorrr->port->gpio_af = GPIO_AF7;
+  motorrr->port->clken = RCC_GPIOA;
+  motorrr->port->clken_usart = RCC_USART2;
+  usart_init(motorrr->port);
+  motorrr->usart = motorrr->port->usart;
+  free(motorrr->port); // free memory
 
   // pass the configuration for the right rear motor
-  //motorrr->port = motorrl->port;
+  //motorrl->usart = motorrr->usart;
 }
 
 void encoder_config(void) {
@@ -117,16 +120,23 @@ void encoder_config(void) {
   // front right motor encoder
   motorfr->encoder = malloc(sizeof(encoder));
   motorfr->encoder->autoreload = 10000;
-  motorfr->encoder->filter.max_size = 20;
+  motorfr->encoder->filter.max_size = 15;
   filter_init(&motorfr->encoder->filter);
   encoder_init(motorfr->encoder);
 
   // front left motor encoder
   motorfl->encoder = malloc(sizeof(encoder));
   motorfl->encoder->autoreload = 10000;
-  motorfl->encoder->filter.max_size = 20;
+  motorfl->encoder->filter.max_size = 15;
   filter_init(&motorfl->encoder->filter);
   encoder_init(motorfl->encoder);
+
+  // rear right encoder init
+  motorrr->encoder = malloc(sizeof(encoder));
+  motorrr->encoder->autoreload = 10000;
+  motorrr->encoder->filter.max_size = 15;
+  filter_init(&motorrr->encoder->filter);
+  encoder_init(motorrr->encoder);
 
   // rear left encoder init
   //motorrl->encoder = malloc(sizeof(encoder));
@@ -135,12 +145,6 @@ void encoder_config(void) {
   //filter_init(&motorrl->encoder->filter);
   //encoder_init(motorrl->encoder);
 
-  // rear right encoder init
-  //motorrr->encoder = malloc(sizeof(encoder));
-  //motorrr->encoder->autoreload = 10000;
-  //motorrr->encoder->filter.max_size = 20;
-  //filter_init(&motorrr->encoder->filter);
-  //encoder_init(motorrr->encoder);
 
 }
 
@@ -190,23 +194,26 @@ void timers_config(void) {
   free(motorfl->timer);
 
   // rear right motor timer
-  //motorrr->timer = malloc(sizeof(timer));
-  //motorrr->timer->clken_ch1 = RCC_GPIOB;
-  //motorrr->timer->clken_ch2 = RCC_GPIOB;
-  //motorrr->timer->clken_timer = RCC_TIM3;
-  //motorrr->timer->gpio_port_ch1 = GPIOB;
-  //motorrr->timer->gpio_port_ch2 = GPIOB;
-  //motorrr->timer->gpio_pin_ch1 = GPIO4;
-  //motorrr->timer->gpio_pin_ch2 = GPIO5;
-  //motorrr->timer->period = 65535;
-  //motorrr->timer->peripheral = TIM3;
-  //motorrr->timer->gpio_af = GPIO_AF2;
-  //motorrr->timer->ic1 = TIM_IC1;
-  //motorrr->timer->in1 = TIM_IC_IN_TI1;
-  //motorrr->timer->ic2 = TIM_IC2;
-  //motorrr->timer->in2 = TIM_IC_IN_TI2;
-  //motorrr->timer->mode = 0x3;
-  //tim_init(motorrr->timer);
+  motorrr->timer = malloc(sizeof(timer));
+  motorrr->timer->clken_ch1 = RCC_GPIOB;
+  motorrr->timer->clken_ch2 = RCC_GPIOB;
+  motorrr->timer->clken_timer = RCC_TIM3;
+  motorrr->timer->gpio_port_ch1 = GPIOB;
+  motorrr->timer->gpio_port_ch2 = GPIOB;
+  motorrr->timer->gpio_pin_ch1 = GPIO4;
+  motorrr->timer->gpio_pin_ch2 = GPIO5;
+  motorrr->timer->period = 65535;
+  motorrr->timer->peripheral = TIM3;
+  motorrr->timer->gpio_af = GPIO_AF2;
+  motorrr->timer->ic1 = TIM_IC1;
+  motorrr->timer->in1 = TIM_IC_IN_TI1;
+  motorrr->timer->ic2 = TIM_IC2;
+  motorrr->timer->in2 = TIM_IC_IN_TI2;
+  motorrr->timer->mode = 0x3;
+  tim_init(motorrr->timer);
+  motorrr->peripheral = motorrr->timer->peripheral;
+  motorrr->period = motorrr->timer->period;
+  free(motorrr->timer);
 
   // rear left motor timer
   //motorrl->timer = malloc(sizeof(timer));
@@ -245,25 +252,14 @@ void pid_config(void) {
   motorfr->pid->response_time = 0.001; // 1 ms
 
   // use fr pid config
-  motorfl->pid = motorrl->pid;
+  motorfl->pid = motorfr->pid;
+  motorrr->pid = motorfr->pid;
 
 //  motorrr->pid = motorrl->pid;
 //  motorfr->pid = motorrl->pid;
 }
 
 void motors_config(void) {
-  // motor rear left configuration
-  //motorrl->address = 128;
-  //motorrl->code = 0;
-  //motorrl->clicks_per_rev = 3408;
-  //motorrl->wheel_radius = 0.05; // in meters
-
-  // motor rear right configuration
-  //motorrr->address = 128;
-  //motorrr->code = 1;
-  //motorrr->clicks_per_rev = 3408;
-  //motorrr->wheel_radius = 0.05;
-
   // motor front rear configuration
   motorfr->address = 128;
   motorfr->code = 0;
@@ -275,6 +271,18 @@ void motors_config(void) {
   motorfl->code = 1;
   motorfl->clicks_per_rev = 3408;
   motorfl->wheel_radius = 0.05;
+
+  // motor rear right configuration
+  motorrr->address = 128;
+  motorrr->code = 1;
+  motorrr->clicks_per_rev = 3408;
+  motorrr->wheel_radius = 0.05;
+
+  // motor rear left configuration
+  //motorrl->address = 128;
+  //motorrl->code = 0;
+  //motorrl->clicks_per_rev = 3408;
+  //motorrl->wheel_radius = 0.05; // in meters
 
 }
 
@@ -289,13 +297,15 @@ void system_init(void) {
   motorrl = malloc(sizeof(motor));
 
   usart_config(); // this config functions can be used with other ports and functions
-  encoder_config();
   timers_config();
   pid_config();
   motors_config();
 
   //leds_init();
   cdcacm_init();
+
+  encoder_config(); // this comsumes a lot of memory because of filters
+
   systick_init();
 }
 
@@ -323,24 +333,24 @@ int main(void)
      *be PA2 and PA3 pins.*/
 
     //fprintf(stdout, "Pos: %d | Vel: %f | Accel: %f | Counter: %u \n", current_pos, current_vel, current_accel, counter);
-    //fprintf(stdout, "Past Pos: %lld | Past timer Pos: %ld | TICKS TIME: %f | Counter: %lld | Current Vel: %f \n", motorfl->encoder->past_pos, motorfl->encoder->current_timer_counter, TICKS_TIME, motorfl->encoder->systick_counter, motorfl->encoder->current_vel);
+    //fprintf(stdout, "Past Pos: %lld | Past timer Pos: %ld | TICKS TIME: %f | Counter: %lld | Current Vel: %f \n", motorrr->encoder->past_pos, motorrr->encoder->current_timer_counter, TICKS_TIME, motorrr->encoder->systick_counter, motorrr->encoder->current_vel);
     // fprintf(stdout, "test\n");
-    fprintf(stdout, "POS 1: %lld | POS 2: %lld | VALUE: %d | MOTRO: %d \n", motorfl->encoder->current_pos, motorfl->encoder->current_pos, value, motorfl->code);
+    fprintf(stdout, "POS 1: %lld | POS 2: %lld | VALUE: %d | MOTRO: %d \n", motorrr->encoder->current_pos, motorrr->encoder->current_pos, value, motorrr->code);
     //fprintf(stdout,
     //        "Act: %f | AvgVel: %f | Ref: %f | Kp: %f | Ki: %f | Kd: %f | E: %f | Esum: %f | Change %f \n",
-     //       motorfl->pid->current_action,
-       //     motorfl->encoder->current_vel/(float) motorfl->clicks_per_rev,
-           // motorfl->pid->reference,
-         //   motorfl->pid->kp,
-           // motorfl->pid->ki,
-           // motorfl->pid->kd,
-           // motorfl->pid->current_error,
-           // motorfl->pid->error_sum,
-           // (motorfl->pid->current_error - motorfl->pid->past_error)) ;
-    //fprintf(stdout, "Current Vel: %f | Avg Vel: %f | Pos: %lld | Counter: %ld\n", motorfl->encoder->current_vel, motorfl->encoder->avg_ticks, motorfl->encoder->current_pos, motorfl->encoder->used_timer_counter);
+     //       motorrr->pid->current_action,
+       //     motorrr->encoder->current_vel/(float) motorrr->clicks_per_rev,
+           // motorrr->pid->reference,
+         //   motorrr->pid->kp,
+           // motorrr->pid->ki,
+           // motorrr->pid->kd,
+           // motorrr->pid->current_error,
+           // motorrr->pid->error_sum,
+           // (motorrr->pid->current_error - motorrr->pid->past_error)) ;
+    //fprintf(stdout, "Current Vel: %f | Avg Vel: %f | Pos: %lld | Counter: %ld\n", motorrr->encoder->current_vel, motorrr->encoder->avg_ticks, motorrr->encoder->current_pos, motorrr->encoder->used_timer_counter);
 
     if ((poll(stdin) > 0)) {
-      motorfl->pid->updating = true;
+      motorrr->pid->updating = true;
       i=0;
       c=0;
       while (c!='\r') {
@@ -348,65 +358,65 @@ int main(void)
 
         i++;
         putc(c, stdout);
-        fprintf(stdout, "%f", motorfl->pid->reference);
+        fprintf(stdout, "%f", motorrr->pid->reference);
         //fprintf(stdout, " %u\n", c);
         // read firmware test
         char output;
         //bool success = false;
-        bool success = read_firmware(&output, motorfl);
+        bool success = read_firmware(&output, motorrr);
         if (success) {
           fprintf(stdout, "%s", &output);
         }// if success
         // read battery test
         float voltage;
         success = false;
-        success = read_main_battery(&voltage, motorfl);
+        success = read_main_battery(&voltage, motorrr);
         if (success) {
           fprintf(stdout, " %f\n", voltage);
         }
         if (c == 122) { // z will raise the reference
           //success = false;
-          motorfl->pid->reference += 0.1;
+          motorrr->pid->reference += 0.1;
         }
         if (c == 120) { // x will lower the reference
-          motorfl->pid->reference -= 0.1;
+          motorrr->pid->reference -= 0.1;
         }
         if (c == 110) { // n will increase kp by 0.1
-          motorfl->pid->ki += 0.00001;
+          motorrr->pid->ki += 0.00001;
         }
 
         if (c == 109) { // m will decrease kp by 0.1
-          motorfl->pid->ki -= 0.00001;
+          motorrr->pid->ki -= 0.00001;
         }
 
         if (c == 49){
           success = false;
           value += 1;
-          success = drive_motor(motorfl, value);
-          //success = drive_motor(&motorfl, value);
+          success = drive_motor(motorrr, value);
+          //success = drive_motor(&motorrr, value);
         }
         if (c == 50){
           success = false;
           value-=1;
-          success = drive_motor(motorfl, value);
-          //success = drive_motor(&motorfl, value);
+          success = drive_motor(motorrr, value);
+          //success = drive_motor(&motorrr, value);
         }
 
         if (c == 112){//WARNING dont change direction while moving fast
           success = false;
           dir = !dir;
-          success = drive_motor_fwd_bwd(motorfl, value, dir);
+          success = drive_motor_fwd_bwd(motorrr, value, dir);
         }
         if (c == 119){//move forward with w
 
           success = false;
           value += 1;
-          success = drive_motor_fwd_bwd(motorfl, value, dir);
+          success = drive_motor_fwd_bwd(motorrr, value, dir);
         }
         if (c == 115){//move backward with s
           success = false;
           value -= 1;
-          success = drive_motor_fwd_bwd(motorfl, value, dir);
+          success = drive_motor_fwd_bwd(motorrr, value, dir);
         }
         if(success){
           fprintf(stdout, "ACK\n");
@@ -418,7 +428,7 @@ int main(void)
         success = false;
 
       }
-    motorfl->pid->updating = false;
+    motorrr->pid->updating = false;
     }
   }
 
