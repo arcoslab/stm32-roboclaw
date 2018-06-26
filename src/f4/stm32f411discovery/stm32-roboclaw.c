@@ -54,8 +54,20 @@ void sys_tick_handler(void) {
    */
 
   // pid control for motorfl
-  encoder_update(test);
-  cmd_vel(test);
+  encoder_update(motorfl);
+  cmd_vel(motorfl);
+
+  // pid control for motorfr
+  encoder_update(motorfr);
+  cmd_vel(motorfr);
+
+  // pid control for motorrr
+  encoder_update(motorrr);
+  cmd_vel(motorrr);
+
+  // pid control for motorrl
+  encoder_update(motorrl);
+  cmd_vel(motorrl);
 
 }
 
@@ -98,28 +110,28 @@ void encoder_config(void) {
   // front right motor encoder
   motorfl->encoder = malloc(sizeof(encoder));
   motorfl->encoder->autoreload = 10000;
-  motorfl->encoder->filter.max_size = 15;
+  motorfl->encoder->filter.max_size = 10;
   filter_init(&motorfl->encoder->filter);
   encoder_init(motorfl->encoder);
 
   // front left motor encoder
   motorfr->encoder = malloc(sizeof(encoder));
   motorfr->encoder->autoreload = 10000;
-  motorfr->encoder->filter.max_size = 15;
+  motorfr->encoder->filter.max_size = 10;
   filter_init(&motorfr->encoder->filter);
   encoder_init(motorfr->encoder);
 
   // rear right encoder init
   motorrr->encoder = malloc(sizeof(encoder));
   motorrr->encoder->autoreload = 10000;
-  motorrr->encoder->filter.max_size = 15;
+  motorrr->encoder->filter.max_size = 10;
   filter_init(&motorrr->encoder->filter);
   encoder_init(motorrr->encoder);
 
   // rear left encoder init
   motorrl->encoder = malloc(sizeof(encoder));
   motorrl->encoder->autoreload = 10000;
-  motorrl->encoder->filter.max_size = 15;
+  motorrl->encoder->filter.max_size = 10;
   filter_init(&motorrl->encoder->filter);
   encoder_init(motorrl->encoder);
 
@@ -219,9 +231,9 @@ void timers_config(void) {
 void pid_config(void) {
   // new pid using malloc
   motorfl->pid = malloc(sizeof(pid));
-  motorfl->pid->kp = 0.02; // 0->6 tune for good reference response-> Big overshoot
+  motorfl->pid->kp = 0.025;
   motorfl->pid->ki = 0.35;
-  motorfl->pid->kd = 0.001;
+  motorfl->pid->kd = 0;
   motorfl->pid->reference = 0.0;
   motorfl->pid->current_error = 0;
   motorfl->pid->past_error = 0;
@@ -232,10 +244,50 @@ void pid_config(void) {
   motorfl->pid->wait_time = 0;
   motorfl->pid->response_time = 0.001; // 1 ms
 
-  // use fr pid config
-  motorfr->pid = motorfl->pid;
-  motorrr->pid = motorfl->pid;
-  motorrl->pid = motorfl->pid;
+  // front right encoder
+  motorfr->pid = malloc(sizeof(pid));
+  motorfr->pid->kp = 0.025;
+  motorfr->pid->ki = 0.35;
+  motorfr->pid->kd = 0;
+  motorfr->pid->reference = 0.0;
+  motorfr->pid->current_error = 0;
+  motorfr->pid->past_error = 0;
+  motorfr->pid->error_sum = 0;
+  motorfr->pid->current_action = 0;
+  motorfr->pid->past_action = 0;
+  motorfr->pid->action_limit = 127;
+  motorfr->pid->wait_time = 0;
+  motorfr->pid->response_time = 0.001; // 1 ms
+
+  // rear right encoder config
+  motorrr->pid = malloc(sizeof(pid));
+  motorrr->pid->kp = 0.025;
+  motorrr->pid->ki = 0.35;
+  motorrr->pid->kd = 0;
+  motorrr->pid->reference = 0.0;
+  motorrr->pid->current_error = 0;
+  motorrr->pid->past_error = 0;
+  motorrr->pid->error_sum = 0;
+  motorrr->pid->current_action = 0;
+  motorrr->pid->past_action = 0;
+  motorrr->pid->action_limit = 127;
+  motorrr->pid->wait_time = 0;
+  motorrr->pid->response_time = 0.001; // 1 ms
+
+  // rear left encoder config
+  motorrl->pid = malloc(sizeof(pid));
+  motorrl->pid->kp = 0.025;
+  motorrl->pid->ki = 0.35;
+  motorrl->pid->kd = 0;
+  motorrl->pid->reference = 0.0;
+  motorrl->pid->current_error = 0;
+  motorrl->pid->past_error = 0;
+  motorrl->pid->error_sum = 0;
+  motorrl->pid->current_action = 0;
+  motorrl->pid->past_action = 0;
+  motorrl->pid->action_limit = 127;
+  motorrl->pid->wait_time = 0;
+  motorrl->pid->response_time = 0.001; // 1 ms
 }
 
 void motors_config(void) {
@@ -282,6 +334,13 @@ void system_init(void) {
 
   cdcacm_init();
   encoder_config(); // this comsumes a lot of memory because of filters
+
+  // set all motors to 0
+  drive_motor(motorfl, 0);
+  drive_motor(motorfr, 0);
+  drive_motor(motorrr, 0);
+  drive_motor(motorrl, 0);
+
   systick_init();
 
   test = motorrl; // test front motor
@@ -310,25 +369,31 @@ int main(void)
      *to the usart 2 for a stm32f4-disco11. This would
      *be PA2 and PA3 pins.*/
 
+    fprintf(stdout, "POS FR: %lld  POS FL %lld  POS RR %lld  POS RL %lld \n", motorfr->encoder->current_pos, motorfl->encoder->current_pos, motorrr->encoder->current_pos, motorrl->encoder->current_pos);
     //fprintf(stdout, "Pos: %d | Vel: %f | Accel: %f | Counter: %u \n", current_pos, current_vel, current_accel, counter);
     //fprintf(stdout, "Past Pos: %lld | Past timer Pos: %ld | TICKS TIME: %f | Counter: %lld | Current Vel: %f \n", motorfr->encoder->past_pos, test->encoder->current_timer_counter, TICKS_TIME, test->encoder->systick_counter, test->encoder->current_vel);
     // fprintf(stdout, "test\n");
-    fprintf(stdout, "POS 1: %lld | POS 2: %lld | VALUE: %d | MOTRO: %d \n", test->encoder->current_pos, test->encoder->current_pos, value, test->code);
-    //fprintf(stdout,
-    //        "Act: %f | AvgVel: %f | Ref: %f | Kp: %f | Ki: %f | Kd: %f | E: %f | Esum: %f | Change %f \n",
-     //       test->pid->current_action,
-       //     test->encoder->current_vel/(float) test->clicks_per_rev,
-           // test->pid->reference,
-         //   test->pid->kp,
-           // test->pid->ki,
-           // test->pid->kd,
-           // test->pid->current_error,
-           // test->pid->error_sum,
-           // (test->pid->current_error - test->pid->past_error)) ;
+    //fprintf(stdout, "POS 1: %lld | POS 2: %lld | VALUE: %d | MOTRO: %d \n", test->encoder->current_pos, test->encoder->current_pos, value, test->code);
+    /* fprintf(stdout, */
+    /*         "Act: %f | AvgVel: %f | Ref: %f | Kp: %f | Ki: %f | Kd: %f | E: %f | Esum: %f | Change %f \n", */
+    /*         test->pid->current_action, */
+    /*         test->encoder->current_vel/(float) test->clicks_per_rev, */
+    /*         test->pid->reference, */
+    /*         test->pid->kp, */
+    /*         test->pid->ki, */
+    /*         test->pid->kd, */
+    /*         test->pid->current_error, */
+    /*         test->pid->error_sum, */
+    /*         (test->pid->current_error - test->pid->past_error)) ; */
     //fprintf(stdout, "Current Vel: %f | Avg Vel: %f | Pos: %lld | Counter: %ld\n", test->encoder->current_vel, test->encoder->avg_ticks, test->encoder->current_pos, test->encoder->used_timer_counter);
 
     if ((poll(stdin) > 0)) {
-      test->pid->updating = true;
+      // stop pid control for a moment
+      motorfr->pid->updating = true;
+      motorfl->pid->updating = true;
+      motorrr->pid->updating = true;
+      motorrl->pid->updating = true;
+
       i=0;
       c=0;
       while (c!='\r') {
@@ -354,10 +419,16 @@ int main(void)
         }
         if (c == 122) { // z will raise the reference
           //success = false;
-          test->pid->reference += 0.1;
+          motorrl->pid->reference += 0.1;
+          motorrr->pid->reference += 0.1;
+          motorfr->pid->reference += 0.1;
+          motorfl->pid->reference += 0.1;
         }
         if (c == 120) { // x will lower the reference
-          test->pid->reference -= 0.1;
+          motorrl->pid->reference -= 0.1;
+          motorrr->pid->reference -= 0.1;
+          motorfr->pid->reference -= 0.1;
+          motorfl->pid->reference -= 0.1;
         }
         if (c == 110) { // n will increase kp by 0.1
           test->pid->ki += 0.00001;
@@ -406,7 +477,11 @@ int main(void)
         success = false;
 
       }
-    test->pid->updating = false;
+      // stop pid control for a moment
+      motorfr->pid->updating = false;
+      motorfl->pid->updating = false;
+      motorrr->pid->updating = false;
+      motorrl->pid->updating = false;
     }
   }
 
