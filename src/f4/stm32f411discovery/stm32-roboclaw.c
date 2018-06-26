@@ -364,11 +364,6 @@ int main(void)
   }
 
   while (1){
-    /* If you want to test this code with a stm32f4
-     *you should connect the tx and rx port
-     *to the usart 2 for a stm32f4-disco11. This would
-     *be PA2 and PA3 pins.*/
-
     fprintf(stdout, "POS FR: %lld  POS FL %lld  POS RR %lld  POS RL %lld \n", motorfr->encoder->current_pos, motorfl->encoder->current_pos, motorrr->encoder->current_pos, motorrl->encoder->current_pos);
     //fprintf(stdout, "Pos: %d | Vel: %f | Accel: %f | Counter: %u \n", current_pos, current_vel, current_accel, counter);
     //fprintf(stdout, "Past Pos: %lld | Past timer Pos: %ld | TICKS TIME: %f | Counter: %lld | Current Vel: %f \n", motorfr->encoder->past_pos, test->encoder->current_timer_counter, TICKS_TIME, test->encoder->systick_counter, test->encoder->current_vel);
