@@ -41,6 +41,7 @@
 #include "motor.h"
 #include "filter.h"
 
+
 static motor *motorrl; // static is necesary to mantain this values
 static motor *motorrr;
 static motor *motorfr;
@@ -346,138 +347,174 @@ void system_init(void) {
   test = motorrl; // test front motor
 }
 
+void read_instruction(char *c) {
+  /* Read stdin and command instruction */
+
+  while(*c!='\r') {
+    *c = getc(stdin);
+    if(*c == "a") {
+      putc(*c, stdout);
+    }
+  }
+
+}
+
 int main(void)
 {
   system_init();
 
-  int i;
-  int c=0;
-  int value = 0;
-  bool dir = 0;
+  //int i;
+  //char c=0;
+  //int value = 0;
+  //bool dir = 0;
+  char line[100];
+  float number=0;
+  size_t size;
+
+  // variables used
 
   setvbuf(stdin,NULL,_IONBF,0); // Sets stdin in unbuffered mode (normal for usart com)
   setvbuf(stdout,NULL,_IONBF,0); // Sets stdin in unbuffered mode (normal for usart com)
 
+  // clean stdin
   while (poll(stdin) > 0) {
-    printf("Cleaning stdin\n");
+    //printf("Cleaning stdin\n");
     getc(stdin);
   }
 
-  while (1){
-    fprintf(stdout, "POS FR: %lld  POS FL %lld  POS RR %lld  POS RL %lld \n", motorfr->encoder->current_pos, motorfl->encoder->current_pos, motorrr->encoder->current_pos, motorrl->encoder->current_pos);
-    //fprintf(stdout, "Pos: %d | Vel: %f | Accel: %f | Counter: %u \n", current_pos, current_vel, current_accel, counter);
-    //fprintf(stdout, "Past Pos: %lld | Past timer Pos: %ld | TICKS TIME: %f | Counter: %lld | Current Vel: %f \n", motorfr->encoder->past_pos, test->encoder->current_timer_counter, TICKS_TIME, test->encoder->systick_counter, test->encoder->current_vel);
-    // fprintf(stdout, "test\n");
-    //fprintf(stdout, "POS 1: %lld | POS 2: %lld | VALUE: %d | MOTRO: %d \n", test->encoder->current_pos, test->encoder->current_pos, value, test->code);
-    /* fprintf(stdout, */
-    /*         "Act: %f | AvgVel: %f | Ref: %f | Kp: %f | Ki: %f | Kd: %f | E: %f | Esum: %f | Change %f \n", */
-    /*         test->pid->current_action, */
-    /*         test->encoder->current_vel/(float) test->clicks_per_rev, */
-    /*         test->pid->reference, */
-    /*         test->pid->kp, */
-    /*         test->pid->ki, */
-    /*         test->pid->kd, */
-    /*         test->pid->current_error, */
-    /*         test->pid->error_sum, */
-    /*         (test->pid->current_error - test->pid->past_error)) ; */
-    //fprintf(stdout, "Current Vel: %f | Avg Vel: %f | Pos: %lld | Counter: %ld\n", test->encoder->current_vel, test->encoder->avg_ticks, test->encoder->current_pos, test->encoder->used_timer_counter);
+  // read input forever
+  while(1) {
+    if (poll(stdin)>0) {
+      // pause pid action
 
-    if ((poll(stdin) > 0)) {
-      // stop pid control for a moment
-      motorfr->pid->updating = true;
-      motorfl->pid->updating = true;
-      motorrr->pid->updating = true;
-      motorrl->pid->updating = true;
+      //scanf("%f", number);
 
-      i=0;
-      c=0;
-      while (c!='\r') {
-        c=getc(stdin);
+      scanf("%s %f %f %f", line, number);
 
-        i++;
-        putc(c, stdout);
-        fprintf(stdout, "%f", test->pid->reference);
-        //fprintf(stdout, " %u\n", c);
-        // read firmware test
-        char output;
-        //bool success = false;
-        bool success = read_firmware(&output, test);
-        if (success) {
-          fprintf(stdout, "%s", &output);
-        }// if success
-        // read battery test
-        float voltage;
-        success = false;
-        success = read_main_battery(&voltage, test);
-        if (success) {
-          fprintf(stdout, " %f\n", voltage);
-        }
-        if (c == 122) { // z will raise the reference
-          //success = false;
-          motorrl->pid->reference += 0.1;
-          motorrr->pid->reference += 0.1;
-          motorfr->pid->reference += 0.1;
-          motorfl->pid->reference += 0.1;
-        }
-        if (c == 120) { // x will lower the reference
-          motorrl->pid->reference -= 0.1;
-          motorrr->pid->reference -= 0.1;
-          motorfr->pid->reference -= 0.1;
-          motorfl->pid->reference -= 0.1;
-        }
-        if (c == 110) { // n will increase kp by 0.1
-          test->pid->ki += 0.00001;
-        }
+      printf(line);
 
-        if (c == 109) { // m will decrease kp by 0.1
-          test->pid->ki -= 0.00001;
-        }
+      //read_instruction(&c);
 
-        if (c == 49){
-          success = false;
-          value += 1;
-          success = drive_motor(test, value);
-          //success = drive_motor(&test, value);
-        }
-        if (c == 50){
-          success = false;
-          value-=1;
-          success = drive_motor(test, value);
-          //success = drive_motor(&test, value);
-        }
-
-        if (c == 112){//WARNING dont change direction while moving fast
-          success = false;
-          dir = !dir;
-          success = drive_motor_fwd_bwd(test, value, dir);
-        }
-        if (c == 119){//move forward with w
-
-          success = false;
-          value += 1;
-          success = drive_motor_fwd_bwd(test, value, dir);
-        }
-        if (c == 115){//move backward with s
-          success = false;
-          value -= 1;
-          success = drive_motor_fwd_bwd(test, value, dir);
-        }
-        if(success){
-          fprintf(stdout, "ACK\n");
-        }
-        else{
-          fprintf(stdout, "FAILED\n");
-        }
-        //move motor
-        success = false;
-
-      }
-      // stop pid control for a moment
-      motorfr->pid->updating = false;
-      motorfl->pid->updating = false;
-      motorrr->pid->updating = false;
-      motorrl->pid->updating = false;
+      // renew pid action
     }
   }
+
+
+  /* while (1){ */
+  /*   fprintf(stdout, "POS FR: %lld  POS FL %lld  POS RR %lld  POS RL %lld \n", motorfr->encoder->current_pos, motorfl->encoder->current_pos, motorrr->encoder->current_pos, motorrl->encoder->current_pos); */
+  /*   //fprintf(stdout, "Pos: %d | Vel: %f | Accel: %f | Counter: %u \n", current_pos, current_vel, current_accel, counter); */
+  /*   //fprintf(stdout, "Past Pos: %lld | Past timer Pos: %ld | TICKS TIME: %f | Counter: %lld | Current Vel: %f \n", motorfr->encoder->past_pos, test->encoder->current_timer_counter, TICKS_TIME, test->encoder->systick_counter, test->encoder->current_vel); */
+  /*   // fprintf(stdout, "test\n"); */
+  /*   //fprintf(stdout, "POS 1: %lld | POS 2: %lld | VALUE: %d | MOTRO: %d \n", test->encoder->current_pos, test->encoder->current_pos, value, test->code); */
+  /*   /\* fprintf(stdout, *\/ */
+  /*   /\*         "Act: %f | AvgVel: %f | Ref: %f | Kp: %f | Ki: %f | Kd: %f | E: %f | Esum: %f | Change %f \n", *\/ */
+  /*   /\*         test->pid->current_action, *\/ */
+  /*   /\*         test->encoder->current_vel/(float) test->clicks_per_rev, *\/ */
+  /*   /\*         test->pid->reference, *\/ */
+  /*   /\*         test->pid->kp, *\/ */
+  /*   /\*         test->pid->ki, *\/ */
+  /*   /\*         test->pid->kd, *\/ */
+  /*   /\*         test->pid->current_error, *\/ */
+  /*   /\*         test->pid->error_sum, *\/ */
+  /*   /\*         (test->pid->current_error - test->pid->past_error)) ; *\/ */
+  /*   //fprintf(stdout, "Current Vel: %f | Avg Vel: %f | Pos: %lld | Counter: %ld\n", test->encoder->current_vel, test->encoder->avg_ticks, test->encoder->current_pos, test->encoder->used_timer_counter); */
+
+  /*   if ((poll(stdin) > 0)) { */
+  /*     // stop pid control for a moment */
+  /*     motorfr->pid->updating = true; */
+  /*     motorfl->pid->updating = true; */
+  /*     motorrr->pid->updating = true; */
+  /*     motorrl->pid->updating = true; */
+
+  /*     i=0; */
+  /*     c=0; */
+  /*     while (c!='\r') { */
+  /*       c=getc(stdin); */
+
+  /*       i++; */
+  /*       putc(c, stdout); */
+  /*       fprintf(stdout, "%f", test->pid->reference); */
+  /*       //fprintf(stdout, " %u\n", c); */
+  /*       // read firmware test */
+  /*       char output; */
+  /*       //bool success = false; */
+  /*       bool success = read_firmware(&output, test); */
+  /*       if (success) { */
+  /*         fprintf(stdout, "%s", &output); */
+  /*       }// if success */
+  /*       // read battery test */
+  /*       float voltage; */
+  /*       success = false; */
+  /*       success = read_main_battery(&voltage, test); */
+  /*       if (success) { */
+  /*         fprintf(stdout, " %f\n", voltage); */
+  /*       } */
+  /*       if (c == 122) { // z will raise the reference */
+  /*         //success = false; */
+  /*         motorrl->pid->reference += 0.1; */
+  /*         motorrr->pid->reference += 0.1; */
+  /*         motorfr->pid->reference += 0.1; */
+  /*         motorfl->pid->reference += 0.1; */
+  /*       } */
+  /*       if (c == 120) { // x will lower the reference */
+  /*         motorrl->pid->reference -= 0.1; */
+  /*         motorrr->pid->reference -= 0.1; */
+  /*         motorfr->pid->reference -= 0.1; */
+  /*         motorfl->pid->reference -= 0.1; */
+  /*       } */
+  /*       if (c == 110) { // n will increase kp by 0.1 */
+  /*         test->pid->ki += 0.00001; */
+  /*       } */
+
+  /*       if (c == 109) { // m will decrease kp by 0.1 */
+  /*         test->pid->ki -= 0.00001; */
+  /*       } */
+
+  /*       if (c == 49){ */
+  /*         success = false; */
+  /*         value += 1; */
+  /*         success = drive_motor(test, value); */
+  /*         //success = drive_motor(&test, value); */
+  /*       } */
+  /*       if (c == 50){ */
+  /*         success = false; */
+  /*         value-=1; */
+  /*         success = drive_motor(test, value); */
+  /*         //success = drive_motor(&test, value); */
+  /*       } */
+
+  /*       if (c == 112){//WARNING dont change direction while moving fast */
+  /*         success = false; */
+  /*         dir = !dir; */
+  /*         success = drive_motor_fwd_bwd(test, value, dir); */
+  /*       } */
+  /*       if (c == 119){//move forward with w */
+
+  /*         success = false; */
+  /*         value += 1; */
+  /*         success = drive_motor_fwd_bwd(test, value, dir); */
+  /*       } */
+  /*       if (c == 115){//move backward with s */
+  /*         success = false; */
+  /*         value -= 1; */
+  /*         success = drive_motor_fwd_bwd(test, value, dir); */
+  /*       } */
+  /*       if(success){ */
+  /*         fprintf(stdout, "ACK\n"); */
+  /*       } */
+  /*       else{ */
+  /*         fprintf(stdout, "FAILED\n"); */
+  /*       } */
+  /*       //move motor */
+  /*       success = false; */
+
+  /*     } */
+  /*     // stop pid control for a moment */
+  /*     motorfr->pid->updating = false; */
+  /*     motorfl->pid->updating = false; */
+  /*     motorrr->pid->updating = false; */
+  /*     motorrl->pid->updating = false; */
+  /*   } */
+  /* } */
 
 }
