@@ -347,16 +347,30 @@ void system_init(void) {
   test = motorrl; // test front motor
 }
 
-void read_instruction(char *c) {
+void read_instruction(char *c, float *vels, char *line) {
   /* Read stdin and command instruction */
 
-  while(*c!='\r') {
-    *c = getc(stdin);
-    if(*c == "a") {
-      putc(*c, stdout);
-    }
-  }
+  // read the instruction
+  *c = getc(stdin);
 
+  // switch for different commands
+  switch(*c) {
+    case 'm' :
+      // send back 0 for instruction
+      putc(0, stdout);
+
+      // expects 4 float values
+      scanf("%f %f %f %f", &vels[0], &vels[1], &vels[2], &vels[3]);
+
+      // command the velocity
+      motorrl->pid->reference = vels[0];
+      motorrr->pid->reference = vels[1];
+      motorfr->pid->reference = vels[2];
+      motorfl->pid->reference = vels[3];
+
+      // finally send ack
+      printf("A");
+  }
 }
 
 int main(void)
@@ -364,11 +378,12 @@ int main(void)
   system_init();
 
   //int i;
-  //char c=0;
+  char c=0;
   //int value = 0;
   //bool dir = 0;
   char line[100];
   float number=0;
+  float vels[4] = {0,0,0,0};
   size_t size;
 
   // variables used
@@ -386,16 +401,22 @@ int main(void)
   while(1) {
     if (poll(stdin)>0) {
       // pause pid action
+      motorfr->pid->updating = true;
+      motorfl->pid->updating = true;
+      motorrr->pid->updating = true;
+      motorrl->pid->updating = true;
 
-      //scanf("%f", number);
+      // instruction character reset
+      c=0;
 
-      scanf("%s %f %f %f", line, number);
-
-      printf(line);
-
-      //read_instruction(&c);
+      // read instruction function
+      read_instruction(&c, vels, line);
 
       // renew pid action
+      motorfr->pid->updating = false;
+      motorfl->pid->updating = false;
+      motorrr->pid->updating = false;
+      motorrl->pid->updating = false;
     }
   }
 
