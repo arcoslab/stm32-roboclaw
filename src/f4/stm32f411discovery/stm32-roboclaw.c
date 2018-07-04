@@ -17,6 +17,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define LX 0.16
+#define LY 0.1495
+#define R 0.3
+//#define DEGREE_TO_RAD 0.0
+
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/exti.h>
@@ -40,7 +45,6 @@
 #include "encoder.h"
 #include "motor.h"
 #include "filter.h"
-
 
 static motor *motorrl; // static is necesary to mantain this values
 static motor *motorrr;
@@ -347,6 +351,16 @@ void system_init(void) {
   test = motorrl; // test front motor
 }
 
+void convert_vel(float *vels) {
+  /* Receive the velocities, convert to each motor vel*/
+
+  motorfl->pid->reference = (1/R)*(vels[0] - vels[1] - (LX+LY)*vels[2]);
+  motorfr->pid->reference = (1/R)*(vels[0] + vels[1] + (LX+LY)*vels[2]);
+  motorrl->pid->reference = (1/R)*(vels[0] + vels[1] - (LX+LY)*vels[2]);
+  motorrr->pid->reference = (1/R)*(vels[0] - vels[1] + (LX+LY)*vels[2]);
+
+}
+
 void read_instruction(char *c, float *vels, char *line) {
   /* Read stdin and command instruction */
 
@@ -360,16 +374,13 @@ void read_instruction(char *c, float *vels, char *line) {
       putc(0, stdout);
 
       // expects 4 float values
-      scanf("%f %f %f %f", &vels[0], &vels[1], &vels[2], &vels[3]);
+      scanf("%f %f %f", &vels[0], &vels[1], &vels[2]);
 
-      // command the velocity
-      motorrl->pid->reference = vels[0];
-      motorrr->pid->reference = vels[1];
-      motorfr->pid->reference = vels[2];
-      motorfl->pid->reference = vels[3];
+      // command velocity
+      convert_vel(vels);
 
       // finally send ack
-      printf("A");
+      printf("%f", (1/(R))*(vels[0] - vels[1] - (LX+LY)*vels[2]));
   }
 }
 
@@ -383,7 +394,7 @@ int main(void)
   //bool dir = 0;
   char line[100];
   float number=0;
-  float vels[4] = {0,0,0,0};
+  float vels[3] = {0,0,0};
   size_t size;
 
   // variables used
