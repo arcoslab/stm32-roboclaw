@@ -1,5 +1,17 @@
 #include "motor.h"
 
+void pid_reset(motor *motor_x) {
+  /* Set all variables to 0 */
+
+  motor_x->pid->reference = 0.0;
+  motor_x->pid->current_error = 0;
+  motor_x->pid->past_error = 0;
+  motor_x->pid->error_sum = 0;
+  motor_x->pid->current_action = 0;
+  motor_x->pid->past_action = 0;
+
+}
+
 bool cmd_vel(motor *motor_x) {
   // wait until response time has passed
   if (motor_x->pid->response_time > motor_x->pid->wait_time) {
