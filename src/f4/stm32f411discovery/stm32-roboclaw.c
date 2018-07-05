@@ -20,6 +20,7 @@
 #define LX 0.16
 #define LY 0.1495
 #define R 0.3
+#define GLOBAL_POS_UPDATE_TIME 0.001 // this is 1ms
 //#define DEGREE_TO_RAD 0.0
 
 #include <libopencm3/stm32/rcc.h>
@@ -52,6 +53,9 @@ static motor *motorfr;
 static motor *motorfl;
 static motor *test;
 
+float global_pos[3] = {0,0,0};
+float time_elapsed=0;
+
 void sys_tick_handler(void) {
   /* This function will be called when systick fires, every 100us.
      It's purpose is to update the encoder pos, vel, and accel,
@@ -73,6 +77,42 @@ void sys_tick_handler(void) {
   // pid control for motorrl
   encoder_update(motorrl);
   cmd_vel(motorrl);
+
+  // calculate global pos
+  float vels[3] = {0,0,0};
+
+  if(time_elapsed > GLOBAL_POS_UPDATE_TIME) {
+    // time elapsed reset
+    time_elapsed = 0;
+
+    // since update time is now, update global pos
+    // calculate vx
+    vels[0] = (motorfl->encoder->current_vel +
+               motorfr->encoder->current_vel +
+               motorrl->encoder->current_vel +
+               motorrr->encoder->current_vel) * (R/4.0);
+
+    // calculate vy
+    vels[1] = (-motorfl->encoder->current_vel +
+               motorfr->encoder->current_vel +
+               motorrl->encoder->current_vel -
+               motorrr->encoder->current_vel) * (R/4.0);
+
+    // calculate angular vel
+    vels[2] = (-motorfl->encoder->current_vel +
+               motorfr->encoder->current_vel -
+               motorrl->encoder->current_vel +
+               motorrr->encoder->current_vel) * (R/(4.0*(LX+LY)));
+
+    // finally update global pos
+    global_pos[0] += vels[0]*GLOBAL_POS_UPDATE_TIME;
+    global_pos[1] += vels[1]*GLOBAL_POS_UPDATE_TIME;
+    gloabl_pos[2] += vels[2]*GLOBAL_POS_UPDATE_TIME;
+
+  } // if time elapsed
+
+  // add to time elapsed
+  time_elapsed += TICKS_TIME;
 
 }
 
