@@ -52,8 +52,8 @@ static motor *motorfr;
 static motor *motorfl;
 
 float global_pos[3] = {0,0,0};
-float time_elapsed=0;
 float instant_vels[3] = {0,0,0};
+float time_elapsed=0;
 
 void sys_tick_handler(void) {
   /* This function will be called when systick fires, every 100us.
@@ -406,9 +406,18 @@ void read_instruction(char *c, float *vels) {
 
   case 'r' :
     // send back 2 for instruction ack
+    putc(2, stdout);
 
-    // reset all variables, including global pos to 0
+    // reset pid settings
+    pid_reset(motorfr);
+    pid_reset(motorfl);
+    pid_reset(motorrr);
+    pid_reset(motorrl);
 
+    // gloabl pos
+    global_pos[0] = 0;
+    global_pos[1] = 0;
+    global_pos[2] = 0;
 
     break;
 
