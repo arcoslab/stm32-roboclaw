@@ -17,4 +17,11 @@
  */
 
 void system_init(void);
+void usart_config(void);
 void leds_init(void);
+void encoder_config(void);
+void timers_config(void);
+void pid_config(void);
+void convert_vel(float *vels);
+void motors_config(void);
+void read_instruction(char *c, float *vels);
