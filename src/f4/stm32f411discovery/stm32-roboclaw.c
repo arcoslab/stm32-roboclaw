@@ -19,7 +19,9 @@
 
 #define LX 0.16
 #define LY 0.1495
-#define R 0.3
+#define R 0.03
+#define RAD_TO_REV 0.159155
+#define REV_TO_RAD 6.28319
 #define GLOBAL_POS_UPDATE_TIME 0.001 // this is 1ms
 
 #include <libopencm3/stm32/rcc.h>
@@ -87,19 +89,19 @@ void sys_tick_handler(void) {
     instant_vels[0] = (motorfl->encoder->current_vel +
                 motorfr->encoder->current_vel +
                 motorrl->encoder->current_vel +
-                motorrr->encoder->current_vel) * (R/4.0);
+                motorrr->encoder->current_vel) * (R/4.0) * REV_TO_RAD;
 
     // calculate vy
     instant_vels[1] = (-motorfl->encoder->current_vel +
                motorfr->encoder->current_vel +
                motorrl->encoder->current_vel -
-               motorrr->encoder->current_vel) * (R/4.0);
+               motorrr->encoder->current_vel) * (R/4.0) * REV_TO_RAD;
 
     // calculate angular vel
     instant_vels[2] = (-motorfl->encoder->current_vel +
                motorfr->encoder->current_vel -
                motorrl->encoder->current_vel +
-               motorrr->encoder->current_vel) * (R/(4.0*(LX+LY)));
+               motorrr->encoder->current_vel) * (R/(4.0*(LX+LY))) * REV_TO_RAD;
 
     // finally update global pos
     global_pos[0] += instant_vels[0]*GLOBAL_POS_UPDATE_TIME;
@@ -364,10 +366,10 @@ void system_init(void) {
 void convert_vel(float *vels) {
   /* Receive the velocities, convert to each motor vel*/
 
-  motorfl->pid->reference = (1/R)*(vels[0] - vels[1] - (LX+LY)*vels[2]);
-  motorfr->pid->reference = (1/R)*(vels[0] + vels[1] + (LX+LY)*vels[2]);
-  motorrl->pid->reference = (1/R)*(vels[0] + vels[1] - (LX+LY)*vels[2]);
-  motorrr->pid->reference = (1/R)*(vels[0] - vels[1] + (LX+LY)*vels[2]);
+  motorfl->pid->reference = (1/R)*(vels[0] - vels[1] - (LX+LY)*vels[2])*RAD_TO_REV;
+  motorfr->pid->reference = (1/R)*(vels[0] + vels[1] + (LX+LY)*vels[2])*RAD_TO_REV;
+  motorrl->pid->reference = (1/R)*(vels[0] + vels[1] - (LX+LY)*vels[2])*RAD_TO_REV;
+  motorrr->pid->reference = (1/R)*(vels[0] - vels[1] + (LX+LY)*vels[2])*RAD_TO_REV;
 
 }
 
@@ -379,34 +381,44 @@ void read_instruction(char *c, float *vels) {
 
   // switch for different commands
   switch(*c) {
-    case 'm' :
-      // send back 0 for instruction ack
-      putc(0, stdout);
 
-      // expects 4 float values
-      scanf("%f %f %f", &vels[0], &vels[1], &vels[2]);
+  case 'm' :
+    // send back 0 for instruction ack
+    putc(0, stdout);
 
-      // command velocity
-      convert_vel(vels);
+    // expects 4 float values
+    scanf("%f %f %f", &vels[0], &vels[1], &vels[2]);
 
-      // finally send ack
-      printf("%f", (1/(R))*(vels[0] - vels[1] - (LX+LY)*vels[2]));
+    // command velocity
+    convert_vel(vels);
 
-      // end this case
-      break;
+    // finally send ack
+    printf("%f", (1/(R))*(vels[0] - vels[1] - (LX+LY)*vels[2]));
+
+    // end this case
+    break;
 
   case 'o' :
     // send back 1 for instruction ack
     putc(1, stdout);
 
-    // send back 4 float values of the pos
+    // send back 3 float values of the pos
     printf("%f %f %f", global_pos[0], global_pos[1], global_pos[2]);
 
     break;
 
-  case 'r' :
+  case 'v' :
     // send back 2 for instruction ack
     putc(2, stdout);
+
+    // send back 3 float values of the current vel
+    printf("%f %f %f", instant_vels[0], instant_vels[1], instant_vels[2])
+
+    break;
+
+  case 'r' :
+    // send back 3 for instruction ack
+    putc(3, stdout);
 
     // reset pid settings
     pid_reset(motorfr);
@@ -418,6 +430,11 @@ void read_instruction(char *c, float *vels) {
     global_pos[0] = 0;
     global_pos[1] = 0;
     global_pos[2] = 0;
+
+    // instant vels
+    instant_vels[0] = 0;
+    instant_vels[1] = 0;
+    instant_vels[2] = 0;
 
     break;
 
