@@ -93,6 +93,7 @@ typedef struct motor {
   uint32_t usart; // save the usart port for roboclaw
 } motor;
 
+void pid_reset(motor *motor_x);
 bool cmd_vel(motor *motor_x);
 
 #endif
