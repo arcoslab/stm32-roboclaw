@@ -55,6 +55,7 @@ static motor *test;
 
 float global_pos[3] = {0,0,0};
 float time_elapsed=0;
+float instant_vels[3] = {0,0,0};
 
 void sys_tick_handler(void) {
   /* This function will be called when systick fires, every 100us.
@@ -78,36 +79,34 @@ void sys_tick_handler(void) {
   encoder_update(motorrl);
   cmd_vel(motorrl);
 
-  // calculate global pos
-  float vels[3] = {0,0,0};
-
+  // calculate real pos of the robot
   if(time_elapsed > GLOBAL_POS_UPDATE_TIME) {
     // time elapsed reset
     time_elapsed = 0;
 
     // since update time is now, update global pos
     // calculate vx
-    vels[0] = (motorfl->encoder->current_vel +
-               motorfr->encoder->current_vel +
-               motorrl->encoder->current_vel +
-               motorrr->encoder->current_vel) * (R/4.0);
+    instant_vels[0] = (motorfl->encoder->current_vel +
+                motorfr->encoder->current_vel +
+                motorrl->encoder->current_vel +
+                motorrr->encoder->current_vel) * (R/4.0);
 
     // calculate vy
-    vels[1] = (-motorfl->encoder->current_vel +
+    instant_vels[1] = (-motorfl->encoder->current_vel +
                motorfr->encoder->current_vel +
                motorrl->encoder->current_vel -
                motorrr->encoder->current_vel) * (R/4.0);
 
     // calculate angular vel
-    vels[2] = (-motorfl->encoder->current_vel +
+    instant_vels[2] = (-motorfl->encoder->current_vel +
                motorfr->encoder->current_vel -
                motorrl->encoder->current_vel +
                motorrr->encoder->current_vel) * (R/(4.0*(LX+LY)));
 
     // finally update global pos
-    global_pos[0] += vels[0]*GLOBAL_POS_UPDATE_TIME;
-    global_pos[1] += vels[1]*GLOBAL_POS_UPDATE_TIME;
-    gloabl_pos[2] += vels[2]*GLOBAL_POS_UPDATE_TIME;
+    global_pos[0] += instant_vels[0]*GLOBAL_POS_UPDATE_TIME;
+    global_pos[1] += instant_vels[1]*GLOBAL_POS_UPDATE_TIME;
+    global_pos[2] += instant_vels[2]*GLOBAL_POS_UPDATE_TIME;
 
   } // if time elapsed
 
@@ -421,6 +420,19 @@ void read_instruction(char *c, float *vels, char *line) {
 
       // finally send ack
       printf("%f", (1/(R))*(vels[0] - vels[1] - (LX+LY)*vels[2]));
+
+      // end this case
+      break;
+
+  case 'o' :
+    // send back 1 for instruction
+    putc(1, stdout);
+
+    // send back 4 float values of the pos
+    printf("%f %f %f", global_pos[0], global_pos[1], global_pos[2]);
+
+    break;
+
   }
 }
 
