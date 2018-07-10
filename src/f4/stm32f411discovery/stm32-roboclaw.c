@@ -53,8 +53,8 @@ static motor *motorrr;
 static motor *motorfr;
 static motor *motorfl;
 
-float global_pos[3] = {0,0,0};
-float instant_vels[3] = {0,0,0};
+float global_pos[3] = {0.0,0.0,0.0};
+float instant_vels[3] = {0.0,0.0,0.0};
 float time_elapsed=0;
 
 void sys_tick_handler(void) {
@@ -154,28 +154,28 @@ void encoder_config(void) {
   // front right motor encoder
   motorfl->encoder = malloc(sizeof(encoder));
   motorfl->encoder->autoreload = 10000;
-  motorfl->encoder->filter.max_size = 10;
+  motorfl->encoder->filter.max_size = 8;
   filter_init(&motorfl->encoder->filter);
   encoder_init(motorfl->encoder);
 
   // front left motor encoder
   motorfr->encoder = malloc(sizeof(encoder));
   motorfr->encoder->autoreload = 10000;
-  motorfr->encoder->filter.max_size = 10;
+  motorfr->encoder->filter.max_size = 8;
   filter_init(&motorfr->encoder->filter);
   encoder_init(motorfr->encoder);
 
   // rear right encoder init
   motorrr->encoder = malloc(sizeof(encoder));
   motorrr->encoder->autoreload = 10000;
-  motorrr->encoder->filter.max_size = 10;
+  motorrr->encoder->filter.max_size = 8;
   filter_init(&motorrr->encoder->filter);
   encoder_init(motorrr->encoder);
 
   // rear left encoder init
   motorrl->encoder = malloc(sizeof(encoder));
   motorrl->encoder->autoreload = 10000;
-  motorrl->encoder->filter.max_size = 10;
+  motorrl->encoder->filter.max_size = 8;
   filter_init(&motorrl->encoder->filter);
   encoder_init(motorrl->encoder);
 
@@ -393,7 +393,7 @@ void read_instruction(char *c, float *vels) {
     convert_vel(vels);
 
     // finally send ack
-    printf("%f", (1/(R))*(vels[0] - vels[1] - (LX+LY)*vels[2]));
+    putc(10, stdout);
 
     // end this case
     break;
@@ -405,14 +405,17 @@ void read_instruction(char *c, float *vels) {
     // send back 3 float values of the pos
     printf("%f %f %f", global_pos[0], global_pos[1], global_pos[2]);
 
+    // finally send ack
+    putc(10, stdout);
+
     break;
 
   case 'v' :
     // send back 2 for instruction ack
     putc(2, stdout);
 
-    // send back 3 float values of the current vel
-    printf("%f %f %f", instant_vels[0], instant_vels[1], instant_vels[2])
+    // send back 3 float values of the pos
+    printf("%f %f %f", instant_vels[0], instant_vels[1], instant_vels[2]);
 
     break;
 
@@ -427,14 +430,14 @@ void read_instruction(char *c, float *vels) {
     pid_reset(motorrl);
 
     // gloabl pos
-    global_pos[0] = 0;
-    global_pos[1] = 0;
-    global_pos[2] = 0;
+    global_pos[0] = 0.0;
+    global_pos[1] = 0.0;
+    global_pos[2] = 0.0;
 
     // instant vels
-    instant_vels[0] = 0;
-    instant_vels[1] = 0;
-    instant_vels[2] = 0;
+    instant_vels[0] = 0.0;
+    instant_vels[1] = 0.0;
+    instant_vels[2] = 0.0;
 
     break;
 
