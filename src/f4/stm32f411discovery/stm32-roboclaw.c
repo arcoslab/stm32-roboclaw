@@ -417,6 +417,9 @@ void read_instruction(char *c, float *vels) {
     // send back 3 float values of the pos
     printf("%f %f %f", instant_vels[0], instant_vels[1], instant_vels[2]);
 
+    // send back ack
+    putc(10, stdout);
+
     break;
 
   case 'r' :
@@ -438,6 +441,9 @@ void read_instruction(char *c, float *vels) {
     instant_vels[0] = 0.0;
     instant_vels[1] = 0.0;
     instant_vels[2] = 0.0;
+
+    // send back ack
+    putc(10, stdout);
 
     break;
 
