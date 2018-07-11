@@ -376,61 +376,46 @@ void convert_vel(float *vels) {
 void read_instruction(char *c, float *vels) {
   /* Read stdin and command instruction */
 
-  // read the instruction
-  scanf("%c\n", c);
-
   // switch for different commands
   switch(*c) {
 
   case 'm' :
     // send back 0 for instruction ack
-    printf("%d \n", 0);
 
     // expects 4 float values
-    scanf("%f %f %f \n", &vels[0], &vels[1], &vels[2]);
+    scanf("%f %f %f", &vels[0], &vels[1], &vels[2]);
 
     // command velocity
     convert_vel(vels);
 
     // finally send ack
-    printf("%d \n", 10);
+    printf("%d", 10);
+
+    // clean command c
+    *c = 0;
 
     // end this case
     break;
 
   case 'o' :
-    // send back 1 for instruction ack
-    //putc(1, stdout);
-    printf("%d \n", 1);
-
     // send back 3 float values of the pos
-    printf("%f %f %f\n", global_pos[0], global_pos[1], global_pos[2]);
+    printf("%f %f %f %d \n", global_pos[0], global_pos[1], global_pos[2], 11);
 
-    // finally send ack
-    //putc(10, stdout);
-    printf("%d \n", 10);
+    // clean c
+    *c = 0;
 
     break;
 
   case 'v' :
-    // send back 2 for instruction ack
-    //putc(2, stdout);
-    printf("%d", 2);
-
     // send back 3 float values of the pos
-    printf("%f %f %f", instant_vels[0], instant_vels[1], instant_vels[2]);
+    printf("%f %f %f %d \n", instant_vels[0], instant_vels[1], instant_vels[2], 12);
 
-    // send back ack
-   // putc(10, stdout);
-    printf("%d", 10);
+    // clean c
+    *c = 0;
 
     break;
 
   case 'r' :
-    // send back 3 for instruction ack
-    //putc(3, stdout);
-    printf("%d \n", 3);
-
     // reset pid settings
     pid_reset(motorfr);
     pid_reset(motorfl);
@@ -448,14 +433,12 @@ void read_instruction(char *c, float *vels) {
     instant_vels[2] = 0.0;
 
     // send back ack
-   // putc(10, stdout);
-    printf("%d \n", 10);
+    printf("%d", 13);
+
+    // reset command option
+    *c = 0;
 
     break;
-
-  default:
-    printf("%d \n", -1);
-
   }
 }
 
@@ -484,8 +467,8 @@ int main(void)
       motorrr->pid->updating = true;
       motorrl->pid->updating = true;
 
-      // instruction character reset
-      c=0;
+      // review the input command
+      scanf("%c", &c);
 
       // read instruction function
       read_instruction(&c, vels);
