@@ -23,6 +23,7 @@
 #define RAD_TO_REV 0.159155
 #define REV_TO_RAD 6.28319
 #define GLOBAL_POS_UPDATE_TIME 0.001 // this is 1ms
+#define CLICKS_PER_REV 3408
 
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
@@ -63,9 +64,9 @@ void sys_tick_handler(void) {
      and to generate the pid control signal
    */
 
-  // pid control for motorfl
-  encoder_update(motorfl);
-  cmd_vel(motorfl);
+  // pid control for motorrl
+  encoder_update(motorrl);
+  cmd_vel(motorrl);
 
   // pid control for motorfr
   encoder_update(motorfr);
@@ -75,43 +76,49 @@ void sys_tick_handler(void) {
   encoder_update(motorrr);
   cmd_vel(motorrr);
 
-  // pid control for motorrl
-  encoder_update(motorrl);
-  cmd_vel(motorrl);
+  // pid control for motorfl
+  encoder_update(motorfl);
+  cmd_vel(motorfl);
 
-  // calculate real pos of the robot
-  if(time_elapsed > GLOBAL_POS_UPDATE_TIME) {
-    // time elapsed reset
-    time_elapsed = 0;
+  /* // calculate real pos of the robot */
+  /* if(time_elapsed > GLOBAL_POS_UPDATE_TIME) { */
+  /*   // time elapsed reset */
+  /*   time_elapsed = 0; */
 
-    // since update time is now, update global pos
-    // calculate vx
-    instant_vels[0] = (motorfl->encoder->current_vel +
-                motorfr->encoder->current_vel +
-                motorrl->encoder->current_vel +
-                motorrr->encoder->current_vel) * (R/4.0) * REV_TO_RAD;
+  /*   // since update time is now, update global pos */
+  /*   // calculate vx */
+  /*   instant_vels[0] = (motorfl->encoder->current_vel + */
+  /*               motorfr->encoder->current_vel + */
+  /*               motorrl->encoder->current_vel + */
+  /*               motorrr->encoder->current_vel) * conversion_factor_linear; */
 
-    // calculate vy
-    instant_vels[1] = (-motorfl->encoder->current_vel +
-               motorfr->encoder->current_vel +
-               motorrl->encoder->current_vel -
-               motorrr->encoder->current_vel) * (R/4.0) * REV_TO_RAD;
+  /*   /\* calculate vy *\/ */
+  /*   /\* instant_vels[1] = (-1.0 * motorfl->encoder->current_vel + *\/ */
+  /*   /\*            motorfr->encoder->current_vel + *\/ */
+  /*   /\*            motorrl->encoder->current_vel - *\/ */
+  /*   /\*            motorrr->encoder->current_vel) *\/ */
+  /*   /\*   * (R/4.0) *\/ */
+  /*   /\*   * REV_TO_RAD *\/ */
+  /*   /\*   * (1.0/CLICKS_PER_REV); *\/ */
 
-    // calculate angular vel
-    instant_vels[2] = (-motorfl->encoder->current_vel +
-               motorfr->encoder->current_vel -
-               motorrl->encoder->current_vel +
-               motorrr->encoder->current_vel) * (R/(4.0*(LX+LY))) * REV_TO_RAD;
+  /*   /\* calculate angular vel *\/ */
+  /*   /\* instant_vels[2] = (-motorfl->encoder->current_vel + *\/ */
+  /*   /\*            motorfr->encoder->current_vel - *\/ */
+  /*   /\*            motorrl->encoder->current_vel + *\/ */
+  /*   /\*            motorrr->encoder->current_vel) *\/ */
+  /*   /\*   * (R/(4.0*(LX+LY))) *\/ */
+  /*   /\*   * REV_TO_RAD *\/ */
+  /*   /\*   * (1.0/CLICKS_PER_REV); *\/ */
 
-    // finally update global pos
-    global_pos[0] += instant_vels[0]*GLOBAL_POS_UPDATE_TIME;
-    global_pos[1] += instant_vels[1]*GLOBAL_POS_UPDATE_TIME;
-    global_pos[2] += instant_vels[2]*GLOBAL_POS_UPDATE_TIME;
+  /*   /\* // finally update global pos *\/ */
+  /*   /\* global_pos[0] = global_pos[0] + instant_vels[0]*GLOBAL_POS_UPDATE_TIME; *\/ */
+  /*   /\* global_pos[1] = global_pos[1] + instant_vels[1]*GLOBAL_POS_UPDATE_TIME; *\/ */
+  /*   /\* global_pos[2] = global_pos[2] + instant_vels[2]*GLOBAL_POS_UPDATE_TIME; *\/ */
 
-  } // if time elapsed
+  /* } // if time elapsed */
 
-  // add to time elapsed
-  time_elapsed += TICKS_TIME;
+  /* // add to time elapsed */
+  /* time_elapsed += TICKS_TIME; */
 
 }
 
@@ -154,28 +161,28 @@ void encoder_config(void) {
   // front right motor encoder
   motorfl->encoder = malloc(sizeof(encoder));
   motorfl->encoder->autoreload = 10000;
-  motorfl->encoder->filter.max_size = 8;
+  motorfl->encoder->filter.max_size = 13;
   filter_init(&motorfl->encoder->filter);
   encoder_init(motorfl->encoder);
 
   // front left motor encoder
   motorfr->encoder = malloc(sizeof(encoder));
   motorfr->encoder->autoreload = 10000;
-  motorfr->encoder->filter.max_size = 8;
+  motorfr->encoder->filter.max_size = 13;
   filter_init(&motorfr->encoder->filter);
   encoder_init(motorfr->encoder);
 
   // rear right encoder init
   motorrr->encoder = malloc(sizeof(encoder));
   motorrr->encoder->autoreload = 10000;
-  motorrr->encoder->filter.max_size = 8;
+  motorrr->encoder->filter.max_size = 13;
   filter_init(&motorrr->encoder->filter);
   encoder_init(motorrr->encoder);
 
   // rear left encoder init
   motorrl->encoder = malloc(sizeof(encoder));
   motorrl->encoder->autoreload = 10000;
-  motorrl->encoder->filter.max_size = 8;
+  motorrl->encoder->filter.max_size = 13;
   filter_init(&motorrl->encoder->filter);
   encoder_init(motorrl->encoder);
 
@@ -275,8 +282,8 @@ void timers_config(void) {
 void pid_config(void) {
   // new pid using malloc
   motorfl->pid = malloc(sizeof(pid));
-  motorfl->pid->kp = 0.025;
-  motorfl->pid->ki = 0.35;
+  motorfl->pid->kp = 0.285;
+  motorfl->pid->ki = 0.40;
   motorfl->pid->kd = 0;
   motorfl->pid->action_limit = 127;
   motorfl->pid->wait_time = 0;
@@ -285,8 +292,8 @@ void pid_config(void) {
 
   // front right encoder
   motorfr->pid = malloc(sizeof(pid));
-  motorfr->pid->kp = 0.025;
-  motorfr->pid->ki = 0.35;
+  motorfr->pid->kp = 0.285;
+  motorfr->pid->ki = 0.40;
   motorfr->pid->kd = 0;
   motorfr->pid->action_limit = 127;
   motorfr->pid->wait_time = 0;
@@ -295,8 +302,8 @@ void pid_config(void) {
 
   // rear right encoder config
   motorrr->pid = malloc(sizeof(pid));
-  motorrr->pid->kp = 0.025;
-  motorrr->pid->ki = 0.35;
+  motorrr->pid->kp = 0.285;
+  motorrr->pid->ki = 0.40;
   motorrr->pid->kd = 0;
   motorrr->pid->action_limit = 127;
   motorrr->pid->wait_time = 0;
@@ -305,8 +312,8 @@ void pid_config(void) {
 
   // rear left encoder config
   motorrl->pid = malloc(sizeof(pid));
-  motorrl->pid->kp = 0.025;
-  motorrl->pid->ki = 0.35;
+  motorrl->pid->kp = 0.285;
+  motorrl->pid->ki = 0.40;
   motorrl->pid->kd = 0;
   motorrl->pid->action_limit = 127;
   motorrl->pid->wait_time = 0;
@@ -366,10 +373,10 @@ void system_init(void) {
 void convert_vel(float *vels) {
   /* Receive the velocities, convert to each motor vel*/
 
-  motorfl->pid->reference = (1/R)*(vels[0] - vels[1] - (LX+LY)*vels[2])*RAD_TO_REV;
-  motorfr->pid->reference = (1/R)*(vels[0] + vels[1] + (LX+LY)*vels[2])*RAD_TO_REV;
-  motorrl->pid->reference = (1/R)*(vels[0] + vels[1] - (LX+LY)*vels[2])*RAD_TO_REV;
-  motorrr->pid->reference = (1/R)*(vels[0] - vels[1] + (LX+LY)*vels[2])*RAD_TO_REV;
+  motorfl->pid->reference = (1.0/R)*(vels[0] - vels[1] - (LX+LY)*vels[2])*RAD_TO_REV;
+  motorfr->pid->reference = (1.0/R)*(vels[0] + vels[1] + (LX+LY)*vels[2])*RAD_TO_REV;
+  motorrl->pid->reference = (1.0/R)*(vels[0] + vels[1] - (LX+LY)*vels[2])*RAD_TO_REV;
+  motorrr->pid->reference = (1.0/R)*(vels[0] - vels[1] + (LX+LY)*vels[2])*RAD_TO_REV;
 
 }
 
