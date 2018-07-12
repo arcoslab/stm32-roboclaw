@@ -80,10 +80,10 @@ void sys_tick_handler(void) {
   encoder_update(motorfl);
   cmd_vel(motorfl);
 
-  /* // calculate real pos of the robot */
-  /* if(time_elapsed > GLOBAL_POS_UPDATE_TIME) { */
-  /*   // time elapsed reset */
-  /*   time_elapsed = 0; */
+  // calculate real pos of the robot
+  if(time_elapsed > GLOBAL_POS_UPDATE_TIME) {
+    // time elapsed reset
+    time_elapsed = 0;
 
   /*   // since update time is now, update global pos */
   /*   // calculate vx */
@@ -115,10 +115,10 @@ void sys_tick_handler(void) {
   /*   /\* global_pos[1] = global_pos[1] + instant_vels[1]*GLOBAL_POS_UPDATE_TIME; *\/ */
   /*   /\* global_pos[2] = global_pos[2] + instant_vels[2]*GLOBAL_POS_UPDATE_TIME; *\/ */
 
-  /* } // if time elapsed */
+  } // if time elapsed
 
-  /* // add to time elapsed */
-  /* time_elapsed += TICKS_TIME; */
+  // add to time elapsed
+  time_elapsed += TICKS_TIME;
 
 }
 
