@@ -406,7 +406,7 @@ void read_instruction(char *c, float *vels) {
 
   case 'o' :
     // send back 3 float values of the pos
-    printf("%f %f %f %d \n", global_pos[0], global_pos[1], global_pos[2], 11);
+    printf("%0.4f %0.4f %0.4f %d \n", global_pos[0], global_pos[1], global_pos[2], 11);
 
     // clean c
     *c = 0;
@@ -415,7 +415,7 @@ void read_instruction(char *c, float *vels) {
 
   case 'v' :
     // send back 3 float values of the pos
-    printf("%f %f %f %d \n", instant_vels[0], instant_vels[1], instant_vels[2], 12);
+    printf("%0.4f %0.4f %0.4f %d \n", instant_vels[0], instant_vels[1], instant_vels[2], 12);
 
     // clean c
     *c = 0;
