@@ -416,13 +416,22 @@ void read_instruction(char *c, float *vels) {
     // send back 0 for instruction ack
 
     // expects 4 float values
-    scanf("%f %f %f", &vels[0], &vels[1], &vels[2]);
+    //scanf("%f %f %f", &vels[0], &vels[1], &vels[2]);
+    for(int i=0; i<3; i++) {
+      for (int j=0; j<4; j++) {
+        temporal_data.byte[j] = getc(stdin);
+      } // for j
+
+      vels[i] = temporal_data.f;
+
+    } // for i
 
     // command velocity
     convert_vel(vels);
 
     // finally send ack
-    printf("%d", 10);
+    putc(49, stdout);
+    putc(48, stdout);
 
     // clean command c
     *c = 0;
@@ -490,7 +499,8 @@ void read_instruction(char *c, float *vels) {
     instant_vels[2] = 0.0;
 
     // send back ack
-    printf("%d", 13);
+    putc(49, stdout);
+    putc(51, stdout);
 
     // reset command option
     *c = 0;
@@ -533,7 +543,7 @@ int main(void)
       motorrr->pid->updating = true;
       motorrl->pid->updating = true;
 
-      scanf("%c", &c);
+      c = getc(stdin);
 
       // read instruction function
       read_instruction(&c, vels);
