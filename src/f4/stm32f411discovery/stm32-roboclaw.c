@@ -64,9 +64,8 @@ static motor *motorfl;
 volatile float global_pos[3] = {0.0,0.0,0.0};
 volatile float instant_vels[3] = {0.0,0.0,0.0};
 volatile float time_elapsed=0.0;
-volatile float linear_conversion_constant=0.0;
-volatile float angular_conversion_constant=0.0;
 volatile uint8_t turn = 0;
+volatile bool calculating = false;
 
 data temporal_data;
 
@@ -112,37 +111,38 @@ void sys_tick_handler(void) {
     turn = 0;
   }
 
+  if(calculating){
+    if(time_elapsed > GLOBAL_POS_UPDATE_TIME) {
+      // since update time is now, update global pos
+      // calculate vx
+      instant_vels[0] = (motorfl->encoder->current_vel +
+                         motorfr->encoder->current_vel +
+                         motorrl->encoder->current_vel +
+                         motorrr->encoder->current_vel) * LINEAR_CONVERSION;
+      // calculate vy
+      instant_vels[1] = (-1.0 * motorfl->encoder->current_vel +
+                         motorfr->encoder->current_vel +
+                         motorrl->encoder->current_vel -
+                         motorrr->encoder->current_vel) * LINEAR_CONVERSION;
 
-  if(time_elapsed > GLOBAL_POS_UPDATE_TIME) {
-    // since update time is now, update global pos
-    // calculate vx
-    instant_vels[0] = (motorfl->encoder->current_vel +
-                motorfr->encoder->current_vel +
-                motorrl->encoder->current_vel +
-                       motorrr->encoder->current_vel) * LINEAR_CONVERSION;
-    // calculate vy
-    instant_vels[1] = (-1.0 * motorfl->encoder->current_vel +
-               motorfr->encoder->current_vel +
-               motorrl->encoder->current_vel -
-                       motorrr->encoder->current_vel) * LINEAR_CONVERSION;
+      // calculate angular vel
+      instant_vels[2] = (-1.0 * motorfl->encoder->current_vel +
+                         motorfr->encoder->current_vel -
+                         motorrl->encoder->current_vel +
+                         motorrr->encoder->current_vel) * ANGULAR_CONVERSION;
 
-    // calculate angular vel
-    instant_vels[2] = (-1.0 * motorfl->encoder->current_vel +
-               motorfr->encoder->current_vel -
-               motorrl->encoder->current_vel +
-                       motorrr->encoder->current_vel) * ANGULAR_CONVERSION;
+      // finally update global pos
+      global_pos[0] += instant_vels[0]*GLOBAL_POS_UPDATE_TIME;
+      global_pos[1] += instant_vels[1]*GLOBAL_POS_UPDATE_TIME;
+      global_pos[2] += instant_vels[2]*GLOBAL_POS_UPDATE_TIME;
 
-    // finally update global pos
-    global_pos[0] += instant_vels[0]*GLOBAL_POS_UPDATE_TIME;
-    global_pos[1] += instant_vels[1]*GLOBAL_POS_UPDATE_TIME;
-    global_pos[2] += instant_vels[2]*GLOBAL_POS_UPDATE_TIME;
+      // reset the counter
+      time_elapsed = 0.0;
+    } // if time elapsed
 
-    // reset the counter
-    time_elapsed = 0.0;
-  } // if time elapsed
-
-  // add to time elapsed
-  time_elapsed += TICKS_TIME;
+    // add to time elapsed
+    time_elapsed += TICKS_TIME;
+  } // if elapsed
 
 }
 
@@ -185,28 +185,28 @@ void encoder_config(void) {
   // front right motor encoder
   motorfl->encoder = malloc(sizeof(encoder));
   motorfl->encoder->autoreload = 10000;
-  motorfl->encoder->filter.max_size = 15;
+  motorfl->encoder->filter.max_size = 10;
   filter_init(&motorfl->encoder->filter);
   encoder_init(motorfl->encoder);
 
   // front left motor encoder
   motorfr->encoder = malloc(sizeof(encoder));
   motorfr->encoder->autoreload = 10000;
-  motorfr->encoder->filter.max_size = 15;
+  motorfr->encoder->filter.max_size = 10;
   filter_init(&motorfr->encoder->filter);
   encoder_init(motorfr->encoder);
 
   // rear right encoder init
   motorrr->encoder = malloc(sizeof(encoder));
   motorrr->encoder->autoreload = 10000;
-  motorrr->encoder->filter.max_size = 15;
+  motorrr->encoder->filter.max_size = 10;
   filter_init(&motorrr->encoder->filter);
   encoder_init(motorrr->encoder);
 
   // rear left encoder init
   motorrl->encoder = malloc(sizeof(encoder));
   motorrl->encoder->autoreload = 10000;
-  motorrl->encoder->filter.max_size = 15;
+  motorrl->encoder->filter.max_size = 10;
   filter_init(&motorrl->encoder->filter);
   encoder_init(motorrl->encoder);
 
@@ -531,9 +531,11 @@ int main(void)
   while(1) {
     if (poll(stdin)>0) {
       // disable systick
-      //systick_counter_disable();
+      calculating = false;
+      systick_counter_disable();
       //usart_disable(USART2);
       //usart_disable(USART6);
+      calculating = false;
 
       // pause pid action
       motorfr->pid->updating = true;
@@ -547,15 +549,18 @@ int main(void)
       read_instruction(&c, vels);
 
       // re enable systick
-      //systick_counter_enable();
       //usart_enable(USART2);
       //usart_enable(USART6);
+
+      calculating = true;
 
       // renew pid action
       motorfr->pid->updating = false;
       motorfl->pid->updating = false;
       motorrr->pid->updating = false;
       motorrl->pid->updating = false;
+
+      systick_counter_enable();
     }
   }
 }
