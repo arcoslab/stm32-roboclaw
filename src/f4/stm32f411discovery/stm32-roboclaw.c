@@ -24,6 +24,8 @@
 #define REV_TO_RAD 6.28319
 #define GLOBAL_POS_UPDATE_TIME 0.001 // this is 1ms
 #define CLICKS_PER_REV 3408
+#define LINEAR_CONVERSION  (R/4.0) * REV_TO_RAD * (2.0/CLICKS_PER_REV)
+#define ANGULAR_CONVERSION (R/(4.0*(LX+LY))) * REV_TO_RAD * (1.0/CLICKS_PER_REV)
 
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
@@ -117,18 +119,18 @@ void sys_tick_handler(void) {
     instant_vels[0] = (motorfl->encoder->current_vel +
                 motorfr->encoder->current_vel +
                 motorrl->encoder->current_vel +
-                       motorrr->encoder->current_vel) * linear_conversion_constant;
+                       motorrr->encoder->current_vel) * LINEAR_CONVERSION;
     // calculate vy
     instant_vels[1] = (-1.0 * motorfl->encoder->current_vel +
                motorfr->encoder->current_vel +
                motorrl->encoder->current_vel -
-                       motorrr->encoder->current_vel) * linear_conversion_constant;
+                       motorrr->encoder->current_vel) * LINEAR_CONVERSION;
 
     // calculate angular vel
     instant_vels[2] = (-1.0 * motorfl->encoder->current_vel +
                motorfr->encoder->current_vel -
                motorrl->encoder->current_vel +
-                       motorrr->encoder->current_vel) * angular_conversion_constant;
+                       motorrr->encoder->current_vel) * ANGULAR_CONVERSION;
 
     // finally update global pos
     global_pos[0] += instant_vels[0]*GLOBAL_POS_UPDATE_TIME;
@@ -375,10 +377,6 @@ void system_init(void) {
   /* This setup is using a STM32F411-disco, other versions may vary */
   rcc_clock_setup_hse_3v3(&rcc_hse_8mhz_3v3[RCC_CLOCK_3V3_120MHZ]);
 
-  // calculate the constant once
-  linear_conversion_constant = (R/4.0) * REV_TO_RAD * (2.0/CLICKS_PER_REV);
-  angular_conversion_constant = (R/(4.0*(LX+LY))) * REV_TO_RAD * (1.0/CLICKS_PER_REV);
-
   // init the motor structs
   motorfl = malloc(sizeof(motor));
   motorfr = malloc(sizeof(motor));
@@ -533,9 +531,9 @@ int main(void)
   while(1) {
     if (poll(stdin)>0) {
       // disable systick
-      systick_counter_disable();
-      usart_disable(USART2);
-      usart_disable(USART6);
+      //systick_counter_disable();
+      //usart_disable(USART2);
+      //usart_disable(USART6);
 
       // pause pid action
       motorfr->pid->updating = true;
@@ -549,9 +547,9 @@ int main(void)
       read_instruction(&c, vels);
 
       // re enable systick
-      systick_counter_enable();
-      usart_enable(USART2);
-      usart_enable(USART6);
+      //systick_counter_enable();
+      //usart_enable(USART2);
+      //usart_enable(USART6);
 
       // renew pid action
       motorfr->pid->updating = false;
