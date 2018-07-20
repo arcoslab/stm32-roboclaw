@@ -452,8 +452,20 @@ void read_instruction(char *c, float *vels) {
     break;
 
   case 'v' :
-    // send back 3 float values of the pos
-    printf("%0.4f %0.4f %0.4f %d \n", instant_vels[0], instant_vels[1], instant_vels[2], 12);
+
+    for(int i=0; i<3; i++) {
+      // for each global pos value, save the global pos in temporal data union type
+      temporal_data.f = instant_vels[i];
+
+      for(int j=0; j<4; j++) {
+        // print each byte of the data union
+        putc(temporal_data.byte[j], stdout);
+      } // for j
+    } // for i
+
+    // send back 12 as ack code
+    putc(49, stdout);
+    putc(50, stdout);
 
     // clean c
     *c = 0;
