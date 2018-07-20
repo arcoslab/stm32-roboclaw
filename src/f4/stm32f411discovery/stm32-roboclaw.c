@@ -49,14 +49,24 @@
 #include "motor.h"
 #include "filter.h"
 
+typedef union _data {
+  volatile float f;
+  volatile char byte[4];
+} data;
+
 static motor *motorrl; // static is necesary to mantain this values
 static motor *motorrr;
 static motor *motorfr;
 static motor *motorfl;
 
-float global_pos[3] = {0.0,0.0,0.0};
-float instant_vels[3] = {0.0,0.0,0.0};
-float time_elapsed=0;
+volatile float global_pos[3] = {0.0,0.0,0.0};
+volatile float instant_vels[3] = {0.0,0.0,0.0};
+volatile float time_elapsed=0.0;
+volatile float linear_conversion_constant=0.0;
+volatile float angular_conversion_constant=0.0;
+volatile uint8_t turn = 0;
+
+data temporal_data;
 
 void sys_tick_handler(void) {
   /* This function will be called when systick fires, every 100us.
@@ -66,55 +76,67 @@ void sys_tick_handler(void) {
 
   // pid control for motorrl
   encoder_update(motorrl);
-  cmd_vel(motorrl);
 
   // pid control for motorfr
   encoder_update(motorfr);
-  cmd_vel(motorfr);
 
   // pid control for motorrr
   encoder_update(motorrr);
-  cmd_vel(motorrr);
 
   // pid control for motorfl
   encoder_update(motorfl);
-  cmd_vel(motorfl);
 
-  // calculate real pos of the robot
+  switch(turn)
+    {
+    case 0:
+      cmd_vel(motorfr);
+      break;
+
+    case 1:
+      cmd_vel(motorrr);
+      break;
+
+    case 2:
+      cmd_vel(motorfl);
+      break;
+
+    case 3:
+      cmd_vel(motorrl);
+      break;
+    }
+
+  turn +=1;
+  if (turn > 3) {
+    turn = 0;
+  }
+
+
   if(time_elapsed > GLOBAL_POS_UPDATE_TIME) {
-    // time elapsed reset
-    time_elapsed = 0;
+    // since update time is now, update global pos
+    // calculate vx
+    instant_vels[0] = (motorfl->encoder->current_vel +
+                motorfr->encoder->current_vel +
+                motorrl->encoder->current_vel +
+                       motorrr->encoder->current_vel) * linear_conversion_constant;
+    // calculate vy
+    instant_vels[1] = (-1.0 * motorfl->encoder->current_vel +
+               motorfr->encoder->current_vel +
+               motorrl->encoder->current_vel -
+                       motorrr->encoder->current_vel) * linear_conversion_constant;
 
-  /*   // since update time is now, update global pos */
-  /*   // calculate vx */
-  /*   instant_vels[0] = (motorfl->encoder->current_vel + */
-  /*               motorfr->encoder->current_vel + */
-  /*               motorrl->encoder->current_vel + */
-  /*               motorrr->encoder->current_vel) * conversion_factor_linear; */
+    // calculate angular vel
+    instant_vels[2] = (-1.0 * motorfl->encoder->current_vel +
+               motorfr->encoder->current_vel -
+               motorrl->encoder->current_vel +
+                       motorrr->encoder->current_vel) * angular_conversion_constant;
 
-  /*   /\* calculate vy *\/ */
-  /*   /\* instant_vels[1] = (-1.0 * motorfl->encoder->current_vel + *\/ */
-  /*   /\*            motorfr->encoder->current_vel + *\/ */
-  /*   /\*            motorrl->encoder->current_vel - *\/ */
-  /*   /\*            motorrr->encoder->current_vel) *\/ */
-  /*   /\*   * (R/4.0) *\/ */
-  /*   /\*   * REV_TO_RAD *\/ */
-  /*   /\*   * (1.0/CLICKS_PER_REV); *\/ */
+    // finally update global pos
+    global_pos[0] += instant_vels[0]*GLOBAL_POS_UPDATE_TIME;
+    global_pos[1] += instant_vels[1]*GLOBAL_POS_UPDATE_TIME;
+    global_pos[2] += instant_vels[2]*GLOBAL_POS_UPDATE_TIME;
 
-  /*   /\* calculate angular vel *\/ */
-  /*   /\* instant_vels[2] = (-motorfl->encoder->current_vel + *\/ */
-  /*   /\*            motorfr->encoder->current_vel - *\/ */
-  /*   /\*            motorrl->encoder->current_vel + *\/ */
-  /*   /\*            motorrr->encoder->current_vel) *\/ */
-  /*   /\*   * (R/(4.0*(LX+LY))) *\/ */
-  /*   /\*   * REV_TO_RAD *\/ */
-  /*   /\*   * (1.0/CLICKS_PER_REV); *\/ */
-
-  /*   /\* // finally update global pos *\/ */
-  /*   /\* global_pos[0] = global_pos[0] + instant_vels[0]*GLOBAL_POS_UPDATE_TIME; *\/ */
-  /*   /\* global_pos[1] = global_pos[1] + instant_vels[1]*GLOBAL_POS_UPDATE_TIME; *\/ */
-  /*   /\* global_pos[2] = global_pos[2] + instant_vels[2]*GLOBAL_POS_UPDATE_TIME; *\/ */
-
+    // reset the counter
+    time_elapsed = 0.0;
   } // if time elapsed
 
   // add to time elapsed
@@ -161,28 +183,28 @@ void encoder_config(void) {
   // front right motor encoder
   motorfl->encoder = malloc(sizeof(encoder));
   motorfl->encoder->autoreload = 10000;
-  motorfl->encoder->filter.max_size = 13;
+  motorfl->encoder->filter.max_size = 15;
   filter_init(&motorfl->encoder->filter);
   encoder_init(motorfl->encoder);
 
   // front left motor encoder
   motorfr->encoder = malloc(sizeof(encoder));
   motorfr->encoder->autoreload = 10000;
-  motorfr->encoder->filter.max_size = 13;
+  motorfr->encoder->filter.max_size = 15;
   filter_init(&motorfr->encoder->filter);
   encoder_init(motorfr->encoder);
 
   // rear right encoder init
   motorrr->encoder = malloc(sizeof(encoder));
   motorrr->encoder->autoreload = 10000;
-  motorrr->encoder->filter.max_size = 13;
+  motorrr->encoder->filter.max_size = 15;
   filter_init(&motorrr->encoder->filter);
   encoder_init(motorrr->encoder);
 
   // rear left encoder init
   motorrl->encoder = malloc(sizeof(encoder));
   motorrl->encoder->autoreload = 10000;
-  motorrl->encoder->filter.max_size = 13;
+  motorrl->encoder->filter.max_size = 15;
   filter_init(&motorrl->encoder->filter);
   encoder_init(motorrl->encoder);
 
@@ -353,6 +375,10 @@ void system_init(void) {
   /* This setup is using a STM32F411-disco, other versions may vary */
   rcc_clock_setup_hse_3v3(&rcc_hse_8mhz_3v3[RCC_CLOCK_3V3_120MHZ]);
 
+  // calculate the constant once
+  linear_conversion_constant = (R/4.0) * REV_TO_RAD * (2.0/CLICKS_PER_REV);
+  angular_conversion_constant = (R/(4.0*(LX+LY))) * REV_TO_RAD * (1.0/CLICKS_PER_REV);
+
   // init the motor structs
   motorfl = malloc(sizeof(motor));
   motorfr = malloc(sizeof(motor));
@@ -405,8 +431,20 @@ void read_instruction(char *c, float *vels) {
     break;
 
   case 'o' :
-    // send back 3 float values of the pos
-    printf("%0.4f %0.4f %0.4f %d \n", global_pos[0], global_pos[1], global_pos[2], 11);
+
+    for(int i=0; i<3; i++) {
+      // for each global pos value, save the global pos in temporal data union type
+      temporal_data.f = global_pos[i];
+
+      for(int j=0; j<4; j++) {
+        // print each byte of the data union
+        putc(temporal_data.byte[j], stdout);
+      } // for j
+    } // for i
+
+    // send back 11 as ack code
+    putc(49, stdout);
+    putc(49, stdout);
 
     // clean c
     *c = 0;
@@ -446,6 +484,10 @@ void read_instruction(char *c, float *vels) {
     *c = 0;
 
     break;
+
+  default:
+    break;
+
   }
 }
 
@@ -468,17 +510,26 @@ int main(void)
   // read input forever
   while(1) {
     if (poll(stdin)>0) {
+      // disable systick
+      systick_counter_disable();
+      usart_disable(USART2);
+      usart_disable(USART6);
+
       // pause pid action
       motorfr->pid->updating = true;
       motorfl->pid->updating = true;
       motorrr->pid->updating = true;
       motorrl->pid->updating = true;
 
-      // review the input command
       scanf("%c", &c);
 
       // read instruction function
       read_instruction(&c, vels);
+
+      // re enable systick
+      systick_counter_enable();
+      usart_enable(USART2);
+      usart_enable(USART6);
 
       // renew pid action
       motorfr->pid->updating = false;
