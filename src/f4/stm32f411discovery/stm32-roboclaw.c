@@ -26,6 +26,7 @@
 #define CLICKS_PER_REV 3408
 #define LINEAR_CONVERSION  (R/4.0) * REV_TO_RAD * (2.0/CLICKS_PER_REV)
 #define ANGULAR_CONVERSION (R/(4.0*(LX+LY))) * REV_TO_RAD * (1.0/CLICKS_PER_REV)
+#define INVERSE_CONVERSION (1.0/R) * (RAD_TO_REV)
 
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
@@ -65,7 +66,8 @@ volatile float global_pos[3] = {0.0,0.0,0.0};
 volatile float instant_vels[3] = {0.0,0.0,0.0};
 volatile float time_elapsed=0.0;
 volatile uint8_t turn = 0;
-volatile bool calculating = false;
+volatile bool calculating = true;
+volatile float vels[3] = {0.0, 0.0, 0.0};
 
 data temporal_data;
 
@@ -397,10 +399,10 @@ void system_init(void) {
 void convert_vel(float *vels) {
   /* Receive the velocities, convert to each motor vel*/
 
-  motorfl->pid->reference = (1.0/R)*(vels[0] - vels[1] - (LX+LY)*vels[2])*RAD_TO_REV;
-  motorfr->pid->reference = (1.0/R)*(vels[0] + vels[1] + (LX+LY)*vels[2])*RAD_TO_REV;
-  motorrl->pid->reference = (1.0/R)*(vels[0] + vels[1] - (LX+LY)*vels[2])*RAD_TO_REV;
-  motorrr->pid->reference = (1.0/R)*(vels[0] - vels[1] + (LX+LY)*vels[2])*RAD_TO_REV;
+  motorfl->pid->reference = (vels[0] - vels[1] - (LX+LY)*vels[2])*INVERSE_CONVERSION;
+  motorfr->pid->reference = (vels[0] + vels[1] + (LX+LY)*vels[2])*INVERSE_CONVERSION;
+  motorrl->pid->reference = (vels[0] + vels[1] - (LX+LY)*vels[2])*INVERSE_CONVERSION;
+  motorrr->pid->reference = (vels[0] - vels[1] + (LX+LY)*vels[2])*INVERSE_CONVERSION;
 
 }
 
@@ -424,15 +426,12 @@ void read_instruction(char *c, float *vels) {
 
     } // for i
 
-    // command velocity
-    convert_vel(vels);
-
     // finally send ack
     putc(49, stdout);
     putc(48, stdout);
 
-    // clean command c
-    *c = 0;
+    // command velocity
+    convert_vel(vels);
 
     // end this case
     break;
@@ -453,9 +452,6 @@ void read_instruction(char *c, float *vels) {
     putc(49, stdout);
     putc(49, stdout);
 
-    // clean c
-    *c = 0;
-
     break;
 
   case 'v' :
@@ -473,9 +469,6 @@ void read_instruction(char *c, float *vels) {
     // send back 12 as ack code
     putc(49, stdout);
     putc(50, stdout);
-
-    // clean c
-    *c = 0;
 
     break;
 
@@ -500,12 +493,10 @@ void read_instruction(char *c, float *vels) {
     putc(49, stdout);
     putc(51, stdout);
 
-    // reset command option
-    *c = 0;
-
     break;
 
   default:
+
     break;
 
   }
@@ -516,8 +507,6 @@ int main(void)
   system_init();
 
   char c=0;
-  float vels[3] = {0,0,0};
-
   setvbuf(stdin,NULL,_IONBF,0); // Sets stdin in unbuffered mode (normal for usart com)
   setvbuf(stdout,NULL,_IONBF,0); // Sets stdin in unbuffered mode (normal for usart com)
 
