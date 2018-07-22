@@ -10,7 +10,7 @@
 #include "usart.h"
 #include "motor.h"
 
-#define TIMEOUT 1000
+#define TIMEOUT 10000
 #define DRIVE_FWD_1 0
 #define DRIVE_BWD_1 1
 #define DRIVE_FWD_2 4
