@@ -57,6 +57,11 @@ typedef union _data {
   volatile char byte[4];
 } data;
 
+typedef union _checksum {
+  uint16_t crc;
+  char byte[2];
+} checksum;
+
 static motor *motorrl; // static is necesary to mantain this values
 static motor *motorrr;
 static motor *motorfr;
@@ -70,6 +75,8 @@ volatile bool calculating = true;
 volatile float vels[3] = {0.0, 0.0, 0.0};
 
 data temporal_data;
+checksum received_crc;
+checksum local_crc;
 
 void sys_tick_handler(void) {
   /* This function will be called when systick fires, every 100us.
@@ -409,29 +416,42 @@ void convert_vel(float *vels) {
 void read_instruction(char *c, float *vels) {
   /* Read stdin and command instruction */
 
+  unsigned char received[12];
+
   // switch for different commands
   switch(*c) {
 
   case 'm' :
-    // send back 0 for instruction ack
+    // define this space to receive data, then calculate crc
 
-    // expects 4 float values
-    //scanf("%f %f %f", &vels[0], &vels[1], &vels[2]);
     for(int i=0; i<3; i++) {
       for (int j=0; j<4; j++) {
         temporal_data.byte[j] = getc(stdin);
+        received[j+i*4] = temporal_data.byte[j];
       } // for j
 
       vels[i] = temporal_data.f;
 
     } // for i
 
-    // finally send ack
-    putc(49, stdout);
-    putc(48, stdout);
+    // calculate checksum
+    local_crc.crc = crc16(received, 12);
 
-    // command velocity
-    convert_vel(vels);
+    // receive the crc calculated by pc
+    received_crc.byte[0] = getc(stdin);
+    received_crc.byte[1] = getc(stdin);
+
+    // send back local crc to pc
+    putc(local_crc.byte[1], stdout);
+    putc(local_crc.byte[0], stdout);
+
+    // send back received crc
+    //putc(received_crc.byte[1], stdout);
+    //putc(received_crc.byte[0], stdout);
+
+    if (received_crc.crc == local_crc.crc) {
+      convert_vel(vels);
+    }
 
     // end this case
     break;
@@ -449,8 +469,8 @@ void read_instruction(char *c, float *vels) {
     } // for i
 
     // send back 11 as ack code
-    putc(49, stdout);
-    putc(49, stdout);
+    //putc(49, stdout);
+    //putc(49, stdout);
 
     break;
 
@@ -467,8 +487,8 @@ void read_instruction(char *c, float *vels) {
     } // for i
 
     // send back 12 as ack code
-    putc(49, stdout);
-    putc(50, stdout);
+    //putc(49, stdout);
+    //putc(50, stdout);
 
     break;
 
@@ -490,8 +510,8 @@ void read_instruction(char *c, float *vels) {
     instant_vels[2] = 0.0;
 
     // send back ack
-    putc(49, stdout);
-    putc(51, stdout);
+    //putc(49, stdout);
+    //putc(51, stdout);
 
     break;
 
@@ -522,8 +542,8 @@ int main(void)
       // disable systick
       calculating = false;
       systick_counter_disable();
-      //usart_disable(USART2);
-      //usart_disable(USART6);
+      usart_disable(USART2);
+      usart_disable(USART6);
       calculating = false;
 
       // pause pid action
@@ -538,8 +558,8 @@ int main(void)
       read_instruction(&c, vels);
 
       // re enable systick
-      //usart_enable(USART2);
-      //usart_enable(USART6);
+      usart_enable(USART2);
+      usart_enable(USART6);
 
       calculating = true;
 
