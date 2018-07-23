@@ -461,8 +461,6 @@ void read_instruction(char *c, float *vels) {
   if(work) {
     // switch case for different commands
 
-    //putc(1, stdout);
-
     switch(received[0]) {
 
       case 'm' :
@@ -508,6 +506,33 @@ void read_instruction(char *c, float *vels) {
       putc(local_crc.byte[0], stdout);
 
       break;
+
+    case 'v' :
+
+      for(int x=0; x<3; x++) {
+        // for each global pos value, save the global pos in temporal data union type
+        temporal_data.f = instant_vels[x];
+
+        for(int y=0; y<4; y++) {
+          // print each byte of the data union
+          putc(temporal_data.byte[y], stdout);
+
+          // append received for crc calculation
+          received[i] = temporal_data.byte[y];
+
+          i++;
+        } // for y
+
+      } // for x
+
+    // calculate checksum
+    local_crc.crc = crc16(received, i);
+
+    // send back local crc
+    putc(local_crc.byte[1], stdout);
+    putc(local_crc.byte[0], stdout);
+
+    break;
 
 
     } // switch
