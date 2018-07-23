@@ -416,110 +416,218 @@ void convert_vel(float *vels) {
 void read_instruction(char *c, float *vels) {
   /* Read stdin and command instruction */
 
-  unsigned char received[12];
+  // max size of an instruction is 15, so read up to 4 instructions
+  unsigned char received[60];
+  unsigned char sent[12];
+  uint8_t i;
+  bool work=false;
 
-  // switch for different commands
-  switch(*c) {
+  // first byte is suposed to be for instruction
+  received[0] = getc(stdin);
 
-  case 'm' :
-    // define this space to receive data, then calculate crc
+  // read instruction until char is end char
+  for (i=1; i<40; i++) {
+    received[i] = getc(stdin);
 
-    for(int i=0; i<3; i++) {
-      for (int j=0; j<4; j++) {
-        temporal_data.byte[j] = getc(stdin);
-        received[j+i*4] = temporal_data.byte[j];
-      } // for j
+    // every command ends with 10, 0
+    if (((uint8_t)(received[i-1]) == 10) & ((uint8_t)(received[i]) == 0)) {
+      break;
+    } // if
+  } // for
 
-      vels[i] = temporal_data.f;
+  // sum 1 to i
+  i++;
 
-    } // for i
+  // read last two bytes of crc
+  received_crc.byte[0] = getc(stdin);
+  received_crc.byte[1] = getc(stdin);
 
-    // calculate checksum
-    local_crc.crc = crc16(received, 12);
+  // calculate crc, and send back 1 for succesful crc
+  local_crc.crc = crc16(received, i);
 
-    // receive the crc calculated by pc
-    received_crc.byte[0] = getc(stdin);
-    received_crc.byte[1] = getc(stdin);
+  // send back local crc
+  putc(local_crc.byte[1], stdout);
+  putc(local_crc.byte[0], stdout);
 
-    // send back local crc to pc
-    putc(local_crc.byte[1], stdout);
-    putc(local_crc.byte[0], stdout);
-
-    // send back received crc
-    //putc(received_crc.byte[1], stdout);
-    //putc(received_crc.byte[0], stdout);
-
-    if (received_crc.crc == local_crc.crc) {
-      convert_vel(vels);
-    }
-
-    // end this case
-    break;
-
-  case 'o' :
-
-    for(int i=0; i<3; i++) {
-      // for each global pos value, save the global pos in temporal data union type
-      temporal_data.f = global_pos[i];
-
-      for(int j=0; j<4; j++) {
-        // print each byte of the data union
-        putc(temporal_data.byte[j], stdout);
-      } // for j
-    } // for i
-
-    // send back 11 as ack code
-    //putc(49, stdout);
-    //putc(49, stdout);
-
-    break;
-
-  case 'v' :
-
-    for(int i=0; i<3; i++) {
-      // for each global pos value, save the global pos in temporal data union type
-      temporal_data.f = instant_vels[i];
-
-      for(int j=0; j<4; j++) {
-        // print each byte of the data union
-        putc(temporal_data.byte[j], stdout);
-      } // for j
-    } // for i
-
-    // send back 12 as ack code
-    //putc(49, stdout);
-    //putc(50, stdout);
-
-    break;
-
-  case 'r' :
-    // reset pid settings
-    pid_reset(motorfr);
-    pid_reset(motorfl);
-    pid_reset(motorrr);
-    pid_reset(motorrl);
-
-    // gloabl pos
-    global_pos[0] = 0.0;
-    global_pos[1] = 0.0;
-    global_pos[2] = 0.0;
-
-    // instant vels
-    instant_vels[0] = 0.0;
-    instant_vels[1] = 0.0;
-    instant_vels[2] = 0.0;
-
-    // send back ack
-    //putc(49, stdout);
-    //putc(51, stdout);
-
-    break;
-
-  default:
-
-    break;
-
+  if(received_crc.crc == local_crc.crc) {
+    work = true;
+    //putc(1, stdout);
   }
+
+  else {
+    //putc(0, stdout);
+  }
+
+  if(work) {
+    // switch case for different commands
+
+    //putc(1, stdout);
+
+    switch(received[0]) {
+
+      case 'm' :
+
+        // copy data to vels
+        for(int x=0; x<3; x++) {
+          for(int y=0; y<4; y++) {
+            temporal_data.byte[y] = received[1+y+x*4];
+          } // for y
+
+          vels[x] = temporal_data.f;
+
+        } // for x
+
+        // send commands to pid controllers
+        convert_vel(vels);
+
+        break;
+
+    case 'o' :
+
+      for(int x=0; x<3; x++) {
+        // for each global pos value, save the global pos in temporal data union type
+        temporal_data.f = global_pos[x];
+
+        for(int y=0; y<4; y++) {
+          // print each byte of the data union
+          putc(temporal_data.byte[y], stdout);
+
+          // this is for calculating total checksum
+          received[i] = temporal_data.byte[y];
+
+          i++;
+        } // for y
+
+      } // for x
+
+      // calculate checksum
+      local_crc.crc = crc16(received, i);
+
+      // send back local crc
+      putc(local_crc.byte[1], stdout);
+      putc(local_crc.byte[0], stdout);
+
+      break;
+
+
+    } // switch
+  } // if work
+
+
+  /* // switch for different commands */
+  /* switch(*c) { */
+
+  /* case 'm' : */
+  /*   // define this space to receive data, then calculate crc */
+
+  /*   for(int i=0; i<3; i++) { */
+  /*     for (int j=0; j<4; j++) { */
+  /*       temporal_data.byte[j] = getc(stdin); */
+  /*       received[j+i*4] = temporal_data.byte[j]; */
+  /*     } // for j */
+
+  /*     vels[i] = temporal_data.f; */
+
+  /*   } // for i */
+
+  /*   // calculate checksum */
+  /*   local_crc.crc = crc16(received, 12); */
+
+  /*   // receive the crc calculated by pc */
+  /*   received_crc.byte[0] = getc(stdin); */
+  /*   received_crc.byte[1] = getc(stdin); */
+
+  /*   // send back local crc to pc */
+  /*   putc(local_crc.byte[1], stdout); */
+  /*   putc(local_crc.byte[0], stdout); */
+
+  /*   // send back received crc */
+  /*   //putc(received_crc.byte[1], stdout); */
+  /*   //putc(received_crc.byte[0], stdout); */
+
+  /*   if (received_crc.crc == local_crc.crc) { */
+  /*     convert_vel(vels); */
+  /*   } */
+
+  /*   // end this case */
+  /*   break; */
+
+  /* case 'o' : */
+
+  /*   for(int i=0; i<3; i++) { */
+  /*     // for each global pos value, save the global pos in temporal data union type */
+  /*     temporal_data.f = global_pos[i]; */
+
+  /*     for(int j=0; j<4; j++) { */
+  /*       // print each byte of the data union */
+  /*       putc(temporal_data.byte[j], stdout); */
+
+  /*       // append received for crc calculation */
+  /*       received[j+i*4] = temporal_data.byte[j]; */
+  /*     } // for j */
+  /*   } // for i */
+
+  /*   // calculate checksum */
+  /*   local_crc.crc = crc16(received, 12); */
+
+  /*   // send back local crc */
+  /*   putc(local_crc.byte[1], stdout); */
+  /*   putc(local_crc.byte[0], stdout); */
+
+  /*   break; */
+
+  /* case 'v' : */
+
+  /*   for(int i=0; i<3; i++) { */
+  /*     // for each global pos value, save the global pos in temporal data union type */
+  /*     temporal_data.f = instant_vels[i]; */
+
+  /*     for(int j=0; j<4; j++) { */
+  /*       // print each byte of the data union */
+  /*       putc(temporal_data.byte[j], stdout); */
+
+  /*       // append received for crc calculation */
+  /*       received[j+i*4] = temporal_data.byte[j]; */
+  /*     } // for j */
+  /*   } // for i */
+
+  /*   // calculate checksum */
+  /*   local_crc.crc = crc16(received, 12); */
+
+  /*   // send back local crc */
+  /*   putc(local_crc.byte[1], stdout); */
+  /*   putc(local_crc.byte[0], stdout); */
+
+  /*   break; */
+
+  /* case 'r' : */
+  /*   // reset pid settings */
+  /*   pid_reset(motorfr); */
+  /*   pid_reset(motorfl); */
+  /*   pid_reset(motorrr); */
+  /*   pid_reset(motorrl); */
+
+  /*   // gloabl pos */
+  /*   global_pos[0] = 0.0; */
+  /*   global_pos[1] = 0.0; */
+  /*   global_pos[2] = 0.0; */
+
+  /*   // instant vels */
+  /*   instant_vels[0] = 0.0; */
+  /*   instant_vels[1] = 0.0; */
+  /*   instant_vels[2] = 0.0; */
+
+  /*   // send back ack */
+  /*   //putc(49, stdout); */
+  /*   //putc(51, stdout); */
+
+  /*   break; */
+
+  /* default: */
+
+  /*   break; */
+
+  /* } */
 }
 
 int main(void)
@@ -551,8 +659,6 @@ int main(void)
       motorfl->pid->updating = true;
       motorrr->pid->updating = true;
       motorrl->pid->updating = true;
-
-      c = getc(stdin);
 
       // read instruction function
       read_instruction(&c, vels);
