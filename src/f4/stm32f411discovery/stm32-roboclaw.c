@@ -27,6 +27,7 @@
 #define LINEAR_CONVERSION  (R/4.0) * REV_TO_RAD * (2.0/CLICKS_PER_REV)
 #define ANGULAR_CONVERSION (R/(4.0*(LX+LY))) * REV_TO_RAD * (1.0/CLICKS_PER_REV)
 #define INVERSE_CONVERSION (1.0/R) * (RAD_TO_REV)
+#define LTOTAL LX+LY
 
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
@@ -406,10 +407,10 @@ void system_init(void) {
 void convert_vel(float *vels) {
   /* Receive the velocities, convert to each motor vel*/
 
-  motorfl->pid->reference = (vels[0] - vels[1] - (LX+LY)*vels[2])*INVERSE_CONVERSION;
-  motorfr->pid->reference = (vels[0] + vels[1] + (LX+LY)*vels[2])*INVERSE_CONVERSION;
-  motorrl->pid->reference = (vels[0] + vels[1] - (LX+LY)*vels[2])*INVERSE_CONVERSION;
-  motorrr->pid->reference = (vels[0] - vels[1] + (LX+LY)*vels[2])*INVERSE_CONVERSION;
+  motorfl->pid->reference = (vels[0] - vels[1] - (LTOTAL)*vels[2])*INVERSE_CONVERSION;
+  motorfr->pid->reference = (vels[0] + vels[1] + (LTOTAL)*vels[2])*INVERSE_CONVERSION;
+  motorrl->pid->reference = (vels[0] + vels[1] - (LTOTAL)*vels[2])*INVERSE_CONVERSION;
+  motorrr->pid->reference = (vels[0] - vels[1] + (LTOTAL)*vels[2])*INVERSE_CONVERSION;
 
 }
 
@@ -576,10 +577,9 @@ int main(void)
     if (poll(stdin)>0) {
       // disable systick
       calculating = false;
-      systick_counter_disable();
-      usart_disable(USART2);
-      usart_disable(USART6);
-      calculating = false;
+      //systick_counter_disable();
+      //usart_disable(USART2);
+      //usart_disable(USART6);
 
       // pause pid action
       motorfr->pid->updating = true;
@@ -591,10 +591,10 @@ int main(void)
       read_instruction(&c, vels);
 
       // re enable systick
-      usart_enable(USART2);
-      usart_enable(USART6);
+      //usart_enable(USART2);
+      //usart_enable(USART6);
 
-      calculating = true;
+      //calculating = true;
 
       // renew pid action
       motorfr->pid->updating = false;
@@ -602,7 +602,9 @@ int main(void)
       motorrr->pid->updating = false;
       motorrl->pid->updating = false;
 
-      systick_counter_enable();
+      //systick_counter_enable();
+      calculating = true;
+
     }
   }
 }
