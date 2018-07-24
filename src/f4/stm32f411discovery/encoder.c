@@ -59,10 +59,7 @@ bool encoder_update(motor *motor_x){
   // current vel - no need to do the substract because it's always 1.
   motor_x->encoder->current_vel = (motor_x->encoder->current_pos-motor_x->encoder->past_pos) / (motor_x->encoder->avg_ticks * TICKS_TIME);
 
-  // current vel - old vel
-  // motor_x->encoder->current_vel = (float) (motor_x->encoder->current_pos - motor_x->encoder->past_pos)/( ((float) motor_x->encoder->systick_counter) * TICKS_TIME);
-
-  motor_x->encoder->current_accel = motor_x->encoder->current_vel - motor_x->encoder->past_vel;
+  //motor_x->encoder->current_accel = motor_x->encoder->current_vel - motor_x->encoder->past_vel;
 
   // update past values
   motor_x->encoder->past_pos = motor_x->encoder->current_pos;
