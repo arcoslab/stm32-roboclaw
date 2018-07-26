@@ -97,29 +97,34 @@ void sys_tick_handler(void) {
   // pid control for motorfl
   encoder_update(motorfl);
 
-  switch(turn)
-    {
-    case 0:
-      cmd_vel(motorfr);
-      break;
+  cmd_vel(motorfr);
+  cmd_vel(motorrr);
+  cmd_vel(motorfl);
+  cmd_vel(motorrl);
 
-    case 1:
-      cmd_vel(motorrr);
-      break;
+  /* switch(turn) */
+  /*   { */
+  /*   case 0: */
+  /*     cmd_vel(motorfr); */
+  /*     break; */
 
-    case 2:
-      cmd_vel(motorfl);
-      break;
+  /*   case 1: */
+  /*     cmd_vel(motorrr); */
+  /*     break; */
 
-    case 3:
-      cmd_vel(motorrl);
-      break;
-    }
+  /*   case 2: */
+  /*     cmd_vel(motorfl); */
+  /*     break; */
 
-  turn +=1;
-  if (turn > 3) {
-    turn = 0;
-  }
+  /*   case 3: */
+  /*     cmd_vel(motorrl); */
+  /*     break; */
+  /*   } */
+
+  /* turn +=1; */
+  /* if (turn > 3) { */
+  /*   turn = 0; */
+  /* } */
 
   if(calculating){
     if(time_elapsed > GLOBAL_POS_UPDATE_TIME) {
@@ -316,42 +321,42 @@ void timers_config(void) {
 void pid_config(void) {
   // new pid using malloc
   motorfl->pid = malloc(sizeof(pid));
-  motorfl->pid->kp = 0.285;
+  motorfl->pid->kp = 0.785;
   motorfl->pid->ki = 0.40;
   motorfl->pid->kd = 0;
   motorfl->pid->action_limit = 127;
   motorfl->pid->wait_time = 0;
-  motorfl->pid->response_time = 0.001; // 1 ms
+  motorfl->pid->response_time = 0.01; // 1 ms
   pid_reset(motorfl); // reset pid values
 
   // front right encoder
   motorfr->pid = malloc(sizeof(pid));
-  motorfr->pid->kp = 0.285;
+  motorfr->pid->kp = 0.785;
   motorfr->pid->ki = 0.40;
   motorfr->pid->kd = 0;
   motorfr->pid->action_limit = 127;
   motorfr->pid->wait_time = 0;
-  motorfr->pid->response_time = 0.001; // 1 ms
+  motorfr->pid->response_time = 0.01; // 1 ms
   pid_reset(motorfr);
 
   // rear right encoder config
   motorrr->pid = malloc(sizeof(pid));
-  motorrr->pid->kp = 0.285;
+  motorrr->pid->kp = 0.785;
   motorrr->pid->ki = 0.40;
   motorrr->pid->kd = 0;
   motorrr->pid->action_limit = 127;
   motorrr->pid->wait_time = 0;
-  motorrr->pid->response_time = 0.001; // 1 ms
+  motorrr->pid->response_time = 0.01; // 1 ms
   pid_reset(motorrr);
 
   // rear left encoder config
   motorrl->pid = malloc(sizeof(pid));
-  motorrl->pid->kp = 0.285;
+  motorrl->pid->kp = 0.785;
   motorrl->pid->ki = 0.40;
   motorrl->pid->kd = 0;
   motorrl->pid->action_limit = 127;
   motorrl->pid->wait_time = 0;
-  motorrl->pid->response_time = 0.001; // 1 ms
+  motorrl->pid->response_time = 0.01; // 1 ms
   pid_reset(motorrl);
 
 }
