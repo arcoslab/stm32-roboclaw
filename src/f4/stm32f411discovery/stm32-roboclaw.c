@@ -123,8 +123,8 @@ void sys_tick_handler(void) {
                          motorrr->encoder->current_vel) * ANGULAR_CONVERSION;
 
       // finally update global pos
-      global_pos[0] += ( instant_vels[0] * cos(instant_vels[2]) - instant_vels[1] * sin(instant_vels[2]) )*GLOBAL_POS_UPDATE_TIME;
-      global_pos[1] += ( instant_vels[0] * sin(instant_vels[2]) + instant_vels[1] * cos(instant_vels[2]) )*GLOBAL_POS_UPDATE_TIME;
+      global_pos[0] += ( instant_vels[0] * cos(global_pos[2]) - instant_vels[1] * sin(global_pos[2]) )*GLOBAL_POS_UPDATE_TIME;
+      global_pos[1] += ( instant_vels[0] * sin(global_pos[2]) + instant_vels[1] * cos(global_pos[2]) )*GLOBAL_POS_UPDATE_TIME;
       global_pos[2] += instant_vels[2]*GLOBAL_POS_UPDATE_TIME;
 
       // reset the counter
