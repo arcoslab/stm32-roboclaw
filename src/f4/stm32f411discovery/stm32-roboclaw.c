@@ -128,9 +128,9 @@ void sys_tick_handler(void) {
                          instant_vels[1] * sin(global_pos[2]) ) * GLOBAL_POS_UPDATE_TIME;
 
       global_pos[1] += ( instant_vels[0] * sin(global_pos[2]) +
-                         instant_vels[1] * cos(global_pos[2]) )*GLOBAL_POS_UPDATE_TIME;
+                         instant_vels[1] * cos(global_pos[2]) ) * GLOBAL_POS_UPDATE_TIME;
 
-      global_pos[2] += instant_vels[2]*GLOBAL_POS_UPDATE_TIME;
+      global_pos[2] += instant_vels[2] * GLOBAL_POS_UPDATE_TIME;
 
       // reset the counter
       time_elapsed = 0.0;
