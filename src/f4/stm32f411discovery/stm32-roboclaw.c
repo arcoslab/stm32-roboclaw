@@ -24,7 +24,8 @@
 #define REV_TO_RAD 6.28319
 #define GLOBAL_POS_UPDATE_TIME 0.001 // this is 1ms
 #define CLICKS_PER_REV 3408
-#define LINEAR_CONVERSION  (R/4.0) * REV_TO_RAD * (2.0/CLICKS_PER_REV)
+#define MAX_ANGULAR_SPEED 2.4 // this is in rev/sec
+#define LINEAR_CONVERSION  (R/4.0) * REV_TO_RAD * (1.0/CLICKS_PER_REV)
 #define ANGULAR_CONVERSION (R/(4.0*(LX+LY))) * REV_TO_RAD * (1.0/CLICKS_PER_REV)
 #define INVERSE_CONVERSION (1.0/R) * (RAD_TO_REV)
 #define LTOTAL LX+LY
@@ -123,8 +124,12 @@ void sys_tick_handler(void) {
                          motorrr->encoder->current_vel) * ANGULAR_CONVERSION;
 
       // finally update global pos
-      global_pos[0] += ( instant_vels[0] * cos(global_pos[2]) - instant_vels[1] * sin(global_pos[2]) )*GLOBAL_POS_UPDATE_TIME;
-      global_pos[1] += ( instant_vels[0] * sin(global_pos[2]) + instant_vels[1] * cos(global_pos[2]) )*GLOBAL_POS_UPDATE_TIME;
+      global_pos[0] += ( instant_vels[0] * cos(global_pos[2]) -
+                         instant_vels[1] * sin(global_pos[2]) ) * GLOBAL_POS_UPDATE_TIME;
+
+      global_pos[1] += ( instant_vels[0] * sin(global_pos[2]) +
+                         instant_vels[1] * cos(global_pos[2]) )*GLOBAL_POS_UPDATE_TIME;
+
       global_pos[2] += instant_vels[2]*GLOBAL_POS_UPDATE_TIME;
 
       // reset the counter
@@ -385,13 +390,53 @@ void system_init(void) {
   systick_init();
 }
 
+float max(float *array, uint8_t size) {
+  /* Send back the maximum value of an float array */
+
+  float max = 0.0;
+
+  for(int i=0; i<size; i++) {
+    if (array[i] > max) {
+      max = array[i];
+    }
+  }
+
+  return max;
+
+}
+
 void convert_vel(float *vels) {
   /* Receive the velocities, convert to each motor vel*/
 
+  float max_value = 0.0;
+  float conversion_factor = 0.0;
+
+  // reference is in rev/sec
   motorfl->pid->reference = (vels[0] - vels[1] - (LTOTAL)*vels[2])*INVERSE_CONVERSION;
   motorfr->pid->reference = (vels[0] + vels[1] + (LTOTAL)*vels[2])*INVERSE_CONVERSION;
   motorrl->pid->reference = (vels[0] + vels[1] - (LTOTAL)*vels[2])*INVERSE_CONVERSION;
   motorrr->pid->reference = (vels[0] - vels[1] + (LTOTAL)*vels[2])*INVERSE_CONVERSION;
+
+  // save all values in array
+  float array[] = {motorfl->pid->reference,
+                   motorfr->pid->reference,
+                   motorrl->pid->reference,
+                   motorrr->pid->reference };
+
+  // check if any reference is more than it can hold
+  max_value = max(array, 4);
+
+  // check max value, if bigger than max, reduce by the factor
+  if (fabs(max_value) > MAX_ANGULAR_SPEED) {
+    // compute the conversion factor
+    conversion_factor = fabs(max_value) / MAX_ANGULAR_SPEED;
+
+    // compute new values under MAX_ANGULAR_SPEED
+    motorfl->pid->reference /= conversion_factor;
+    motorfr->pid->reference /= conversion_factor;
+    motorrl->pid->reference /= conversion_factor;
+    motorrr->pid->reference /= conversion_factor;
+  }
 
 }
 
