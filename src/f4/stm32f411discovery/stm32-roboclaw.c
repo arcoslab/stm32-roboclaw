@@ -69,8 +69,10 @@ static motor *motorrr;
 static motor *motorfr;
 static motor *motorfl;
 
-volatile float global_pos[3] = {0.0,0.0,0.0};
-volatile float instant_vels[3] = {0.0,0.0,0.0};
+volatile float temporal_global_pos[3] = {0.0,0.0,0.0};
+volatile float temporal_instant_vels[3] = {0.0,0.0,0.0};
+volatile float global_pos[3] = {0.0, 0.0, 0.0};
+volatile float instant_vels[3] = {0.0, 0.0, 0.0};
 volatile float time_elapsed=0.0;
 volatile uint8_t turn = 0;
 volatile bool calculating = true;
@@ -103,48 +105,76 @@ void sys_tick_handler(void) {
   cmd_vel(motorfl);
   cmd_vel(motorrl);
 
-  if(calculating){
-    if(time_elapsed > GLOBAL_POS_UPDATE_TIME) {
-      // since update time is now, update global pos
-      // calculate vx
-      instant_vels[0] = (motorfl->encoder->current_vel +
-                         motorfr->encoder->current_vel +
-                         motorrl->encoder->current_vel +
-                         motorrr->encoder->current_vel) * LINEAR_CONVERSION;
-      // calculate vy
-      instant_vels[1] = (-1.0 * motorfl->encoder->current_vel +
-                         motorfr->encoder->current_vel +
-                         motorrl->encoder->current_vel -
-                         motorrr->encoder->current_vel) * LINEAR_CONVERSION;
+  // update odometry information
 
-      // calculate angular vel
-      instant_vels[2] = (-1.0 * motorfl->encoder->current_vel +
-                         motorfr->encoder->current_vel -
-                         motorrl->encoder->current_vel +
-                         motorrr->encoder->current_vel) * ANGULAR_CONVERSION;
+  instant_vels[0] = (motorfl->encoder->current_vel +
+                              motorfr->encoder->current_vel +
+                              motorrl->encoder->current_vel +
+                              motorrr->encoder->current_vel) * LINEAR_CONVERSION;
+  // calculate vy
+  instant_vels[1] = (-1.0 * motorfl->encoder->current_vel +
+                              motorfr->encoder->current_vel +
+                              motorrl->encoder->current_vel -
+                              motorrr->encoder->current_vel) * LINEAR_CONVERSION;
 
-      // finally update global pos
-      global_pos[0] += instant_vels[0] * time_elapsed;
-      global_pos[1] += instant_vels[1] * time_elapsed;
-      global_pos[2] += instant_vels[2] * time_elapsed;
+  // calculate angular vel
+  instant_vels[2] = (-1.0 * motorfl->encoder->current_vel +
+                              motorfr->encoder->current_vel -
+                              motorrl->encoder->current_vel +
+                              motorrr->encoder->current_vel) * ANGULAR_CONVERSION;
 
-      /* global_pos[0] += ( instant_vels[0] * cos(global_pos[2]) - */
-      /*                    instant_vels[1] * sin(global_pos[2]) ) * GLOBAL_POS_UPDATE_TIME; */
+  // finally update global pos
+  global_pos[0] += instant_vels[0] * TICKS_TIME;
+  global_pos[1] += instant_vels[1] * TICKS_TIME;
+  global_pos[2] += instant_vels[2] * TICKS_TIME;
 
-      /* global_pos[1] += ( instant_vels[0] * sin(global_pos[2]) + */
-      /*                    instant_vels[1] * cos(global_pos[2]) ) * GLOBAL_POS_UPDATE_TIME; */
+  if (calculatin) {
+    temporal_global_pos = global_pos;
+    temporal_instant_vels = instant_vels;
+  }
 
-      /* global_pos[2] += instant_vels[2] * GLOBAL_POS_UPDATE_TIME; */
+  /* if(calculating){ */
+  /*   if(time_elapsed > TEMPORAL_GLOBAL_POS_UPDATE_TIME) { */
+  /*     // since update time is now, update global pos */
+  /*     // calculate vx */
+  /*     /\* temporal_instant_vels[0] = (motorfl->encoder->current_vel + *\/ */
+  /*     /\*                    motorfr->encoder->current_vel + *\/ */
+  /*     /\*                    motorrl->encoder->current_vel + *\/ */
+  /*     /\*                    motorrr->encoder->current_vel) * LINEAR_CONVERSION; *\/ */
+  /*     /\* // calculate vy *\/ */
+  /*     /\* temporal_instant_vels[1] = (-1.0 * motorfl->encoder->current_vel + *\/ */
+  /*     /\*                    motorfr->encoder->current_vel + *\/ */
+  /*     /\*                    motorrl->encoder->current_vel - *\/ */
+  /*     /\*                    motorrr->encoder->current_vel) * LINEAR_CONVERSION; *\/ */
 
-      // reset the counter
-      time_elapsed = 0.0;
-    } // if time elapsed
+  /*     /\* // calculate angular vel *\/ */
+  /*     /\* temporal_instant_vels[2] = (-1.0 * motorfl->encoder->current_vel + *\/ */
+  /*     /\*                    motorfr->encoder->current_vel - *\/ */
+  /*     /\*                    motorrl->encoder->current_vel + *\/ */
+  /*     /\*                    motorrr->encoder->current_vel) * ANGULAR_CONVERSION; *\/ */
 
-    // add to time elapsed
-    //time_elapsed += TICKS_TIME;
-  } // if elapsed
+  /*     /\* // finally update global pos *\/ */
+  /*     /\* temporal_global_pos[0] += temporal_instant_vels[0] * time_elapsed; *\/ */
+  /*     /\* temporal_global_pos[1] += temporal_instant_vels[1] * time_elapsed; *\/ */
+  /*     /\* temporal_global_pos[2] += temporal_instant_vels[2] * time_elapsed; *\/ */
 
-  time_elapsed += TICKS_TIME;
+  /*     /\* temporal_global_pos[0] += ( temporal_instant_vels[0] * cos(temporal_global_pos[2]) - *\/ */
+  /*     /\*                    temporal_instant_vels[1] * sin(temporal_global_pos[2]) ) * TEMPORAL_GLOBAL_POS_UPDATE_TIME; *\/ */
+
+  /*     /\* temporal_global_pos[1] += ( temporal_instant_vels[0] * sin(temporal_global_pos[2]) + *\/ */
+  /*     /\*                    temporal_instant_vels[1] * cos(temporal_global_pos[2]) ) * TEMPORAL_GLOBAL_POS_UPDATE_TIME; *\/ */
+
+  /*     /\* temporal_global_pos[2] += temporal_instant_vels[2] * TEMPORAL_GLOBAL_POS_UPDATE_TIME; *\/ */
+
+  /*     // reset the counter */
+  /*     time_elapsed = 0.0; */
+  /*   } // if time elapsed */
+
+  /*   // add to time elapsed */
+  /*   //time_elapsed += TICKS_TIME; */
+  /* } // if elapsed */
+
+  /* time_elapsed += TICKS_TIME; */
 
 }
 
@@ -517,7 +547,7 @@ void read_instruction(char *c, float *vels) {
 
       for(int x=0; x<3; x++) {
         // for each global pos value, save the global pos in temporal data union type
-        temporal_data.f = global_pos[x];
+        temporal_data.f = temporal_global_pos[x];
 
         for(int y=0; y<4; y++) {
           // print each byte of the data union
@@ -544,7 +574,7 @@ void read_instruction(char *c, float *vels) {
 
       for(int x=0; x<3; x++) {
         // for each global pos value, save the global pos in temporal data union type
-        temporal_data.f = instant_vels[x];
+        temporal_data.f = temporal_instant_vels[x];
 
         for(int y=0; y<4; y++) {
           // print each byte of the data union
