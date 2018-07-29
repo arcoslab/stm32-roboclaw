@@ -17,16 +17,16 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define LX 0.16
-#define LY 0.1495
-#define R 0.03
+#define LX 0.15075
+#define LY 0.1565
+#define R 0.029069
 #define RAD_TO_REV 0.159155
 #define REV_TO_RAD 6.28319
-#define GLOBAL_POS_UPDATE_TIME 0.001 // this is 1ms
+#define GLOBAL_POS_UPDATE_TIME 0.0005 // this is 0.5ms
 #define CLICKS_PER_REV 3408
 #define MAX_ANGULAR_SPEED 2.4 // this is in rev/sec
 #define LINEAR_CONVERSION  (R/4.0) * REV_TO_RAD * (1.0/CLICKS_PER_REV)
-#define ANGULAR_CONVERSION (R/(4.0*(LX+LY))) * REV_TO_RAD * (1.0/CLICKS_PER_REV)
+#define ANGULAR_CONVERSION (R/(4.0*LTOTAL)) * REV_TO_RAD * (1.0/CLICKS_PER_REV)
 #define INVERSE_CONVERSION (1.0/R) * (RAD_TO_REV)
 #define LTOTAL LX+LY
 
@@ -124,21 +124,27 @@ void sys_tick_handler(void) {
                          motorrr->encoder->current_vel) * ANGULAR_CONVERSION;
 
       // finally update global pos
-      global_pos[0] += ( instant_vels[0] * cos(global_pos[2]) -
-                         instant_vels[1] * sin(global_pos[2]) ) * GLOBAL_POS_UPDATE_TIME;
+      global_pos[0] += instant_vels[0] * time_elapsed;
+      global_pos[1] += instant_vels[1] * time_elapsed;
+      global_pos[2] += instant_vels[2] * time_elapsed;
 
-      global_pos[1] += ( instant_vels[0] * sin(global_pos[2]) +
-                         instant_vels[1] * cos(global_pos[2]) ) * GLOBAL_POS_UPDATE_TIME;
+      /* global_pos[0] += ( instant_vels[0] * cos(global_pos[2]) - */
+      /*                    instant_vels[1] * sin(global_pos[2]) ) * GLOBAL_POS_UPDATE_TIME; */
 
-      global_pos[2] += instant_vels[2] * GLOBAL_POS_UPDATE_TIME;
+      /* global_pos[1] += ( instant_vels[0] * sin(global_pos[2]) + */
+      /*                    instant_vels[1] * cos(global_pos[2]) ) * GLOBAL_POS_UPDATE_TIME; */
+
+      /* global_pos[2] += instant_vels[2] * GLOBAL_POS_UPDATE_TIME; */
 
       // reset the counter
       time_elapsed = 0.0;
     } // if time elapsed
 
     // add to time elapsed
-    time_elapsed += TICKS_TIME;
+    //time_elapsed += TICKS_TIME;
   } // if elapsed
+
+  time_elapsed += TICKS_TIME;
 
 }
 
@@ -432,10 +438,10 @@ void convert_vel(float *vels) {
     conversion_factor = fabs(max_value) / MAX_ANGULAR_SPEED;
 
     // compute new values under MAX_ANGULAR_SPEED
-    motorfl->pid->reference /= conversion_factor;
-    motorfr->pid->reference /= conversion_factor;
-    motorrl->pid->reference /= conversion_factor;
-    motorrr->pid->reference /= conversion_factor;
+    //motorfl->pid->reference /= conversion_factor;
+    //motorfr->pid->reference /= conversion_factor;
+    //motorrl->pid->reference /= conversion_factor;
+    //motorrr->pid->reference /= conversion_factor;
   }
 
 }
