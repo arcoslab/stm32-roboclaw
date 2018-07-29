@@ -128,7 +128,7 @@ void sys_tick_handler(void) {
   global_pos[1] += instant_vels[1] * TICKS_TIME;
   global_pos[2] += instant_vels[2] * TICKS_TIME;
 
-  if (calculatin) {
+  if (calculating) {
     temporal_global_pos = global_pos;
     temporal_instant_vels = instant_vels;
   }
