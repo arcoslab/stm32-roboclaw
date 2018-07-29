@@ -13,25 +13,39 @@ void encoder_init(encoder *encoder_x){
 }
 
 bool encoder_update(motor *motor_x){
-  /* Input parameters:
-   *encoder_x: the struct containing all information for this encoder
-   *current_timer_counter: the current internal register counter of the timer
-   *uif: flag of update, raised only is there's an autoreload in the register of the timer
-   * The function will return 1 is there was an update of pos.
+  /*
+    This function will correctly update internal values of encoder
+    struct for each motor, which contains information about
+    encoder amout of ticks, and current velocity of ticks.
+
+    Input: motor struct, which is defined at motor.h
+
    */
 
+  // update systick counter, which is the amout of ticks
+  // systick has made. Each tick occurs at TICK_TIME, which
+  // is defined at systick.h
   motor_x->encoder->systick_counter++;
 
+  // get the counter from TIM_X
   motor_x->encoder->current_timer_counter = timer_get_counter(motor_x->peripheral);
 
+  // check if systick counter is bigger than autoreload
+  // this is in the case that a long time has passed since there has been
+  // any update in the counter of timer. If that happens, then set the vel to 0,
+  // because the wheel is actually not moving
   if (motor_x->encoder->systick_counter > motor_x->encoder->autoreload) {
     motor_x->encoder->current_vel = 0.0;
   }
+
 
   if (motor_x->encoder->past_timer_counter == motor_x->encoder->current_timer_counter) {
     return 0;
   }
 
+
+  // check if UIF flags has being raised. This flag indicates that the counter has reached
+  // the end. Update Interrupt flag is set when the repetition counter is reloaded.
   if (timer_get_flag(motor_x->peripheral, TIM_SR_UIF) == 1) {
     if (motor_x->encoder->past_timer_counter >= ( (float) motor_x->period / 2.0) ) {
       motor_x->encoder->current_pos += 1;
@@ -45,19 +59,25 @@ bool encoder_update(motor *motor_x){
   else {
     // no flag was raised
     if (motor_x->encoder->current_timer_counter > motor_x->encoder->past_timer_counter) {
-      motor_x->encoder->current_pos += motor_x->encoder->current_timer_counter - motor_x->encoder->past_timer_counter;
+      motor_x->encoder->current_pos += (motor_x->encoder->current_timer_counter -
+                                        motor_x->encoder->past_timer_counter);
     }
     else {
-      motor_x->encoder->current_pos -= motor_x->encoder->past_timer_counter - motor_x->encoder->current_timer_counter;
+      motor_x->encoder->current_pos -= (motor_x->encoder->past_timer_counter -
+                                        motor_x->encoder->current_timer_counter);
     }
   }
 
-  // use filter for times, not for vel. With vel the error is increased.
+  // use filter for times, not for vel. Avg ticks is then the amout of systicks
+  // between one encoder tick, and another. The time elapsed between on encoder tick
+  // and another is then, avg ticks * the amout of time on systick event elapses.
   filter_push(&motor_x->encoder->filter, motor_x->encoder->systick_counter);
   motor_x->encoder->avg_ticks = filter_average(&motor_x->encoder->filter);
 
   // current vel - no need to do the substract because it's always 1.
-  motor_x->encoder->current_vel = (motor_x->encoder->current_pos-motor_x->encoder->past_pos) / (motor_x->encoder->avg_ticks * TICKS_TIME);
+  motor_x->encoder->current_vel =
+    (motor_x->encoder->current_pos-motor_x->encoder->past_pos) /
+    (motor_x->encoder->avg_ticks * TICKS_TIME);
 
   //motor_x->encoder->current_accel = motor_x->encoder->current_vel - motor_x->encoder->past_vel;
 
