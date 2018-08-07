@@ -27,6 +27,7 @@ typedef struct encoder {
   volatile float current_vel;
   volatile float current_accel;
   volatile bool uif;
+  volatile float n_ticks;
   filter filter;
   uint64_t autoreload;
 } encoder;
