@@ -59,6 +59,11 @@ typedef union _data {
   volatile char byte[4];
 } data;
 
+typedef union _intdata {
+  volatile int64_t i;
+  volatile char byte[8];
+} intdata;
+
 typedef union _checksum {
   uint16_t crc;
   char byte[2];
@@ -79,8 +84,11 @@ volatile float time_elapsed=0.0;
 volatile uint8_t turn = 0;
 volatile bool calculating = true;
 volatile float vels[3] = {0.0, 0.0, 0.0};
+volatile float fails[4] = {0,0,0,0};
+volatile float each_wheel_vel[4] = {0,0,0,0};
 
 data temporal_data;
+intdata temporal_int;
 checksum received_crc;
 checksum local_crc;
 
@@ -90,8 +98,6 @@ void sys_tick_handler(void) {
      and to generate the pid control signal
    */
 
-  // pid control for motorrl
-  encoder_update(motorrl);
 
   // pid control for motorfr
   encoder_update(motorfr);
@@ -101,6 +107,9 @@ void sys_tick_handler(void) {
 
   // pid control for motorfl
   encoder_update(motorfl);
+
+  // pid control for motorrl
+  encoder_update(motorrl);
 
   // update odometry information
 
@@ -125,16 +134,35 @@ void sys_tick_handler(void) {
   global_pos[1] += instant_vels[1] * TICKS_TIME;
   global_pos[2] += instant_vels[2] * TICKS_TIME;
 
-  cmd_vel(motorfr);
-  cmd_vel(motorrr);
-  cmd_vel(motorfl);
-  cmd_vel(motorrl);
+  bool success;
+
+  for (int i=0; i<4; i++) {
+    success = true;
+    success = cmd_vel(all_motors[i]);
+    if (!success) {
+      fails[i] += 1.0;
+    }
+
+  }
+  /* cmd_vel(motorfr); */
+  /* cmd_vel(motorrr); */
+  /* cmd_vel(motorfl); */
+
+
+  /* result = cmd_vel(motorrrl); */
+  /* if(result) { */
+  /*   fails[3] += 1.0; */
+  /* } */
+
 
   if (calculating) {
     for(int i=0; i<3; i++) {
       temporal_global_pos[i] = global_pos[i];
       temporal_instant_vels[i] = instant_vels[i];
+      each_wheel_vel[i] = all_motors[i]->encoder->current_vel;
     }
+    each_wheel_vel[3] = all_motors[3]->encoder->current_vel;
+
   }
 
   /* if(calculating){ */
@@ -220,29 +248,33 @@ void encoder_config(void) {
 
   // front right motor encoder
   motorfl->encoder = malloc(sizeof(encoder));
-  motorfl->encoder->autoreload = 10000;
-  motorfl->encoder->filter.max_size = 8;
+  motorfl->encoder->autoreload = 40000;
+  motorfl->encoder->filter.max_size = 15;
+  motorfl->encoder->n_ticks = 1;
   filter_init(&motorfl->encoder->filter);
   encoder_init(motorfl->encoder);
 
   // front left motor encoder
   motorfr->encoder = malloc(sizeof(encoder));
-  motorfr->encoder->autoreload = 10000;
-  motorfr->encoder->filter.max_size = 8;
+  motorfr->encoder->autoreload = 40000;
+  motorfr->encoder->filter.max_size = 15;
+  motorfr->encoder->n_ticks = 1;
   filter_init(&motorfr->encoder->filter);
   encoder_init(motorfr->encoder);
 
   // rear right encoder init
   motorrr->encoder = malloc(sizeof(encoder));
-  motorrr->encoder->autoreload = 10000;
-  motorrr->encoder->filter.max_size = 8;
+  motorrr->encoder->autoreload = 40000;
+  motorrr->encoder->filter.max_size = 15;
+  motorfl->encoder->n_ticks = 1;
   filter_init(&motorrr->encoder->filter);
   encoder_init(motorrr->encoder);
 
   // rear left encoder init
   motorrl->encoder = malloc(sizeof(encoder));
-  motorrl->encoder->autoreload = 10000;
-  motorrl->encoder->filter.max_size = 8;
+  motorrl->encoder->autoreload = 40000;
+  motorrl->encoder->filter.max_size = 15;
+  motorrl->encoder->n_ticks = 1;
   filter_init(&motorrl->encoder->filter);
   encoder_init(motorrl->encoder);
 
@@ -342,42 +374,42 @@ void timers_config(void) {
 void pid_config(void) {
   // new pid using malloc
   motorfl->pid = malloc(sizeof(pid));
-  motorfl->pid->kp = 19;
-  motorfl->pid->ki = 2;
+  motorfl->pid->kp = 14;
+  motorfl->pid->ki = 3;
   motorfl->pid->kd = 0;
   motorfl->pid->action_limit = 127;
   motorfl->pid->wait_time = 0;
-  motorfl->pid->response_time = 0.05; // 50 ms
+  motorfl->pid->response_time = 0.02; // 70 ms
   pid_reset(motorfl); // reset pid values
 
   // front right encoder
   motorfr->pid = malloc(sizeof(pid));
-  motorfr->pid->kp = 19;
-  motorfr->pid->ki = 2;
+  motorfr->pid->kp = 14;
+  motorfr->pid->ki = 3;
   motorfr->pid->kd = 0;
   motorfr->pid->action_limit = 127;
   motorfr->pid->wait_time = 0;
-  motorfr->pid->response_time = 0.05; // 50 ms
+  motorfr->pid->response_time = 0.02; // 70 ms
   pid_reset(motorfr);
 
   // rear right encoder config
   motorrr->pid = malloc(sizeof(pid));
-  motorrr->pid->kp = 19;
-  motorrr->pid->ki = 2;
+  motorrr->pid->kp = 14;
+  motorrr->pid->ki = 3;
   motorrr->pid->kd = 0;
   motorrr->pid->action_limit = 127;
   motorrr->pid->wait_time = 0;
-  motorrr->pid->response_time = 0.05; // 50 ms
+  motorrr->pid->response_time = 0.02; // 70 ms
   pid_reset(motorrr);
 
   // rear left encoder config
   motorrl->pid = malloc(sizeof(pid));
-  motorrl->pid->kp = 19;
-  motorrl->pid->ki = 2;
+  motorrl->pid->kp = 14;
+  motorrl->pid->ki = 3;
   motorrl->pid->kd = 0;
   motorrl->pid->action_limit = 127;
   motorrl->pid->wait_time = 0;
-  motorrl->pid->response_time = 0.02; // 50 ms
+  motorrl->pid->response_time = 0.02; // 70 ms
   pid_reset(motorrl);
 
 }
@@ -424,7 +456,6 @@ void system_init(void) {
   all_motors[1] = motorfr;
   all_motors[2] = motorrr;
   all_motors[3] = motorfl;
-
 
   usart_config(); // this config functions can be used with other ports and functions
   timers_config();
@@ -612,7 +643,8 @@ void read_instruction(char *c, float *vels) {
 
       // send back encoder information
       for(int x=0; x<4; x++) {
-        temporal_data.f = all_motors[x]->encoder->current_vel / (float) all_motors[x]->clicks_per_rev;
+        temporal_data.f = (each_wheel_vel[x] /
+                           (float) all_motors[x]->clicks_per_rev) * REV_TO_RAD * R;
 
         for(int y=0; y<4; y++) {
           // print each byte of data
@@ -620,6 +652,59 @@ void read_instruction(char *c, float *vels) {
 
           // append received for crc16 calculation
           received[i] = temporal_data.byte[y];
+
+          i++;
+        }
+      }
+
+      // calculate checksum
+      local_crc.crc = crc16(received, i);
+
+      // send back local crc
+      putc(local_crc.byte[1], stdout);
+      putc(local_crc.byte[0], stdout);
+
+      break;
+
+    case 't' :
+      // send back fails amount
+
+      // send back encoder information
+      for(int x=0; x<4; x++) {
+        temporal_data.f = fails[x];
+
+        for(int y=0; y<4; y++) {
+          // print each byte of data
+          putc(temporal_data.byte[y], stdout);
+
+          // append received for crc16 calculation
+          received[i] = temporal_data.byte[y];
+
+          i++;
+        }
+      }
+
+      // calculate checksum
+      local_crc.crc = crc16(received, i);
+
+      // send back local crc
+      putc(local_crc.byte[1], stdout);
+      putc(local_crc.byte[0], stdout);
+
+      break;
+
+    case 'h' :
+
+      // send back encoder information
+      for(int x=0; x<4; x++) {
+        temporal_int.i = all_motors[x]->encoder->current_pos;
+
+        for(int y=0; y<8; y++) {
+          // print each byte of data
+          putc(temporal_int.byte[y], stdout);
+
+          // append received for crc16 calculation
+          received[i] = temporal_int.byte[y];
 
           i++;
         }
@@ -650,6 +735,12 @@ void read_instruction(char *c, float *vels) {
       instant_vels[0] = 0.0;
       instant_vels[1] = 0.0;
       instant_vels[2] = 0.0;
+
+      // reset amount of fails
+      fails[0] = 0;
+      fails[1] = 0;
+      fails[2] = 0;
+      fails[3] = 0;
 
       break;
     } // switch
