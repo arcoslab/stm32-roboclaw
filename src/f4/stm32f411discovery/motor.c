@@ -17,18 +17,15 @@ bool cmd_vel(motor *motor_x) {
   if (motor_x->pid->response_time > motor_x->pid->wait_time) {
 
     // save past action
-    motor_x->pid->past_action = motor_x->pid->current_action;
+    //motor_x->pid->past_action = motor_x->pid->current_action;
     motor_x->pid->wait_time += TICKS_TIME;
-    return 0;
+    return 1;
   }
 
   // while not updating, don't do anything
   if (motor_x->pid->updating){
-    return 0;
+    return 1;
   }
-
-  // reset wait time
-  motor_x->pid->wait_time = 0.0;
 
   // past error
   motor_x->pid->past_error = motor_x->pid->current_error;
@@ -36,7 +33,7 @@ bool cmd_vel(motor *motor_x) {
   // calculate current error
   motor_x->pid->current_error = motor_x->pid->reference -
     (motor_x->encoder->current_vel / (float) motor_x->clicks_per_rev);
-  motor_x->pid->error_sum += motor_x->pid->current_error*TICKS_TIME;
+  motor_x->pid->error_sum += motor_x->pid->current_error * motor_x->pid->wait_time;
 
   // save past action
   motor_x->pid->past_action = motor_x->pid->current_action;
@@ -58,13 +55,15 @@ bool cmd_vel(motor *motor_x) {
     }
   }
 
+  // reset wait time
+  motor_x->pid->wait_time = 0.0;
+
   // recalculate history
 
-  if (lroundf(motor_x->pid->current_action) == lroundf(motor_x->pid->past_action)){
-    return 0;
-  }
-  drive_motor(motor_x, (int16_t) lroundf(motor_x->pid->current_action));
+  //if (lroundf(motor_x->pid->current_action) == lroundf(motor_x->pid->past_action)){
+  //    return 0;
+  //}
+  return drive_motor(motor_x, (int16_t) lroundf(motor_x->pid->current_action));
 
-  return 1;
 }
 
