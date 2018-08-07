@@ -39,7 +39,8 @@ bool encoder_update(motor *motor_x){
   }
 
 
-  if (motor_x->encoder->past_timer_counter == motor_x->encoder->current_timer_counter) {
+  if ( fabs(motor_x->encoder->past_timer_counter -
+            motor_x->encoder->current_timer_counter) <= motor_x->encoder->n_ticks) {
     return 0;
   }
 
@@ -83,10 +84,10 @@ bool encoder_update(motor *motor_x){
 
   // update past values
   motor_x->encoder->past_pos = motor_x->encoder->current_pos;
-  motor_x->encoder->past_vel = motor_x->encoder->current_vel;
+  //motor_x->encoder->past_vel = motor_x->encoder->current_vel;
   motor_x->encoder->past_timer_counter = motor_x->encoder->current_timer_counter;
 
-  motor_x->encoder->used_timer_counter = motor_x->encoder->systick_counter;
+  //motor_x->encoder->used_timer_counter = motor_x->encoder->systick_counter;
   motor_x->encoder->systick_counter=0;
   return 1;
 }
